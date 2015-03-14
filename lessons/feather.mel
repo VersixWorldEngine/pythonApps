@@ -1,0 +1,2428 @@
+//-----------------------dodo master V0.2--------------------------//
+
+//            AUTHOR:
+            
+//            Semir Saleh, semir@eye-for-complexity.com
+//            Copyright ©2010 Semir Saleh All Rights Reserved  
+
+//            BASIC USE:
+
+//            For an easier understanding of how these tools work.  I would recommend watching the  
+//            short video here: http://vimeo.com/16359901
+
+//            VERY IMPORTANT!:
+//            You must source the script before you use it.  Either manually source it from the script editor
+//            when you start maya ---> go to the script editor, file>source script, select ssDodoMaster_v02.mel.
+
+//            or
+
+//            add the following line to your user setup.mel
+//            source "ssDodoMaster_v01.mel";
+//            This way it will source the script every time maya starts.
+
+//            New or updated features:
+
+//            Users can now duplicated many different feather objects ar random onto a surface:
+//                 add your nurbs surface to it's text field, select one or more objects you wish
+//                 to be duplicated, add them to the feather objects text field.  Dial in the other
+//                 parameters e.g feather count, randomisation duplication pattern etc.. then hit
+//                 the "attach feathers" button.
+
+//           The falloff control has not been modified to any serious extent:
+//                The basic workflow is still the same.  Create a control, add it to it's text field,
+//                then select the feathers that you wish to be controlled and hit "attach Control".
+//                I invisioned it to work as a simple control for amimation but it can also be used for
+//                styling the feathers.  One of it's most useful applications would be as a control for corrective
+//                animation.. for instance your character is animated but in certain poses the feathers point in 
+//                an undesired direction, or after applying dynamics there is an area of feathers that are rotating
+//                into the character and disappearing from view.  The falloff control can be used on those specific
+//                feathers to counter animated their motion and fix undesired movement.
+
+//           Sculpt Grooming:
+//               A new way to easily groom feathers without having to fiddle around with brushes or controls.
+//               In a nutshell the user can model/sculpt the style of the feathers in an easy and intuitive way.
+//               It's setup is the same as the other controls in dodo master with a few new steps at the beginning.
+//               First you must create your "groom object".  You must use a nurbs object for this, this is because
+//               in order for this to work on polygons it requires the closestPointOnMesh node which is native to
+//               maya 2011 but not maya 2008 and possibly 2009, therefore users are using those versions of maya
+//               and do not have bonus tools will not be able to use it.  One other reason is that using nurbs ensures
+//               a fast and simple way for the groom object to be created and used.
+
+//               Once you have your groom object, add it to it's text field.  Set the feather Length, this does not have
+//               to be exact, it is simply there so the script can deliver more desirable results.  A rule of thumb is
+//               it should not be less than the largest feather.  If your largest featers is 7 maya units long then it
+//               might be a good idea to input 7.3 for feather length.
+
+//               The "feather stretching" parameter means that you can stretch your feathers as you move the groom object's
+//               CVs away from the model.  By default it is set to "Y" which means it will stretch the featers in the Y axis
+//               Only,  if "XYZ" is checked then your feathers will be uniformly scaled on all axis and if this is set to off
+//               then no scaling will occur.
+
+//               To remove the sculpt groomer you simple add it to the text field and hit "remove sculpt groomer".
+
+//               FEATHER COMB:
+//               The feather comb is very self explanitory, it is a tool for literally brushing by hand feathers that are within a 
+//               certain distance of the comb.  The user simply creates a comb using the "Create Comb" button.
+//               Input the average feather length, then hit "attach comb".  Now if you move or "Comb" the feathers you should see
+//               a comb like effect on the feathers.  To remove the re
+
+//               VERY IMPORTANT --> once you create the comb you should move it away from any feathers that you wish to control.
+//               Otherwise the feathers within the falloff range will be aiming at the control and that is probably not what you want.
+//                
+                
+//               DYNAMIC SECONDARY MOTION:
+//               It is now possible to have some kind of dynamic secondary motion on the feathers.  The setup is as simple as any of the
+//               other tools in dodo master.  It should also be noted that Dynamics is the last thing to be done to the feathers.  Once
+//               all the grooming is done and the actual character animation is complete only then should dynamics be applied.
+//                
+//               The first step is to add the "character object" to it's text field.  The character object
+//               is simply the object that will drive the animation of the dynamic control surface.  The character object can be the main
+//               character geometry that is skinned to joints or it can be a feather surface that is wrap deformed to the skin mesh.  It
+//               can be made of either polygons or nurbs.
+
+//               The next step is to add the control nurbs.  It has to be nurbs for the same reason that the sculpt groomer has to be nurbs.
+//               A good rule for the control nurbs is that it fits round the selected feathers as closely as possible.
+
+//               Once your control nurbs is added to it's text field the next step is to assign feather length then hit "attach dynamics".
+//               After that maya might need a little time to think and after that you should have dynamics set up.
+
+//               What the script has just done is create a sculpt groomer that has soft bodies applied to it with a few adjustments.  To adjust
+//               the stiffness of the feathers, simply select the particle object attached to the control nurbs and adjust it's goal weight.
+//               You can also influence the movement of the feathers with maya's fields to create wind effects.
+
+//               Sooner or later you will want to render your feathers with the dynamic secondary motion.  To do this you must first cache out the
+//               motion.  Simply add the control mesh you want to cache out to the control nurbs text field and hit "cache dynamics".  This simply
+//               completes the command to bring up maya's geometry caching tool, it was placed in the ui at the convienience of the user.  There is
+//               good documentation in maya's help files about geometry caching so I wont go into it.
+
+//               You may feel that once you cache the dynamics and play it back a few times, or even render it that you are not happy with the result 
+//               and wish to resimulate.  You can simply delete the cache from maya's geometry cache menu or you could just delete history on the control
+//               nurbs.  Keep in mind that if you delete history to get rid of the cache then it will also disonnect the particle object from your control mesh.
+//               To fix this you can add the control nurbs to it's text field and hit "reconnect dynamics".
+
+//               The button, "remove dynamics", is used for.... removing the dynamics.  Add the control nurbs to it's text field and hit the button.  Keep
+//               in mind that you should only remove dynamics when you dont feel the need for it or you wish to go back and do more grooming on the feathers.
+//               You do not need to remove it after everything is cached otherwise it wont work.
+
+//               Enjoy :P  
+
+//////////////UI//////////////////////////////////
+global proc ss_dodoMaster ()
+{
+ls -sl;
+if (`window -ex featherWindow`)
+		{
+		showWindow featherWindow ;
+		return ;
+		}
+
+window -title "DoDo Master V0.2" -widthHeight 400 550 featherWindow;
+
+string $form = `formLayout`;
+string $tabs = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5`;
+formLayout -edit
+    -attachForm $tabs "top"    0
+     -attachForm $tabs "left"   0
+     -attachForm $tabs "bottom" 0
+     -attachForm $tabs "right"  0
+     $form;
+
+     string $child1 = `formLayout mainForm `;
+     
+    text -l "Nurbs Surface:  " nurbTxt ;
+	textField -tx "Pick your nurbs surface" -ed 0 nurbSkinSurface ;
+	button -l "<<<" -w 30 -c ("loadNurbsMesh();") -ann ("Pick your nurbs surface") btnNurbsBase ;
+	
+	text -l "Feather Objects:" featherTxt ;	
+		
+	textScrollList -w 305 -h 80 -append "Add one or more feather objects"  -allowMultiSelection true featherObjTsl ;
+        popupMenu -parent featherObjTsl;
+        menuItem -label "Add Selected Feather Objects" -command "ss_returnSel()";
+        menuItem -divider true ;
+        menuItem -label "Clear List" -command "ss_clearTsl()" ;
+
+    intSliderGrp -label "Feather Count U" -field true
+    	-minValue -0 -maxValue 100
+    	-fieldMinValue 0 -fieldMaxValue 100
+    	-value 1 -ann "Amount of feathers to be duplicated in the U direction" featherCountSliderU;
+
+	floatSliderGrp -label "Randomisation U" -field true
+   	-minValue 0.0 -maxValue 1.0
+       -fieldMinValue 0.0 -fieldMaxValue 1.0
+       -value 0 -pre 3 -ann "Controls amount of randomisation on each feather's position in the U direction, VERY sensative and scale dependent" featherRandomU;
+    
+    intSliderGrp -label "Feather Count V" -field true
+    -minValue -0 -maxValue 100
+    -fieldMinValue 0 -fieldMaxValue 100
+    -value 1 -ann "Amount of feathers to be duplicated in the V direction" featherCountSliderV;
+   
+    floatSliderGrp -label "Randomisation V" -field true
+    -minValue 0.0 -maxValue 1.0
+    -fieldMinValue 0.0 -fieldMaxValue 1.0
+    -value 0 -pre 3 -ann "Controls amount of randomisation on each feather's position in the V direction, VERY sensative and scale dependente" featherRandomV;
+
+    floatFieldGrp -numberOfFields 3
+    -label "Initial Orientation" -extraLabel "XYZ"
+    -value1 0.0 -value2 0.0 -value3 0.0 -ann "controls the amount of rotation on each feather duplication" initialOrientationValues;
+    
+    floatFieldGrp -numberOfFields 3
+    -label "Initial Orientation Rand" -extraLabel "XYZ"
+    -value1 0.0 -value2 0.0 -value3 0.0  -pre 3 -ann "controls the amount of randomness in the initial orientation, the number the user specifies is in degrees" initialOrientationRandValues;
+    
+    floatFieldGrp -numberOfFields 3
+    -label "Initial Scale" -extraLabel "XYZ"
+    -value1 1.0 -value2 1.0 -value3 1.0 -ann "controls the amount of scale each feathers after duplication, VERY sensative and scale dependent" initialScaleValues;
+    
+    floatFieldGrp -numberOfFields 3
+    -label "Initial Scale Rand" -extraLabel "XYZ"
+    -value1 0.0 -value2 0.0 -value3 0.0 -pre 3 -ann "controls the amount of randomness in the initial scale, VERY sensative and scale dependent" initialScaleRandValues;    
+    
+    radioButtonGrp -numberOfRadioButtons 2
+    -label "Duplication Type " -labelArray2 "Copy" "Instance" -select 1 -ann "creates either copies or instances of your feather object" dupType;  
+    
+    radioButtonGrp -numberOfRadioButtons 3
+    -label "Pattern Type " -labelArray3 "Grid" "Brick U" "Brick V" -select 1 -ann "defines what pattern the feather objects will be arranged in" patType;     
+    
+    button -label "Attach Feathers!" -w 120 -command "ss_featherPlacement()"  -ann "click to attach your feathers" buttonAttachFeathers;
+    button -label "Attach Single Feathers!" -w 120 -command "ss_attachSingleFeathers ()" -ann "click to attach feathers to a specified location" buttonAttachSingleFeathers;
+    button -label "Delete Single Feathers!" -w 120 -command "ss_deleteSingleFeathers ()" -ann "click to delete selected feathers" buttonDeleteSingleFeathers;
+    
+    text -l "www.eye-for-complexity.com" -ann "Dodo Master V0.2 30/10/2010 Copyright ©2010 Semir Saleh All Rights Reserved" attachInfoText ;
+
+        
+        formLayout -e
+      
+        -af nurbTxt "top" 118
+		-an nurbTxt "bottom"
+		-af nurbTxt "left" 5
+		-an nurbTxt "right"
+
+		-af nurbSkinSurface "top" 115
+		-an nurbSkinSurface "bottom"
+		-ac nurbSkinSurface "left" 5 nurbTxt 
+		-ac nurbSkinSurface "right" 5 btnNurbsBase
+
+		-af btnNurbsBase"top" 115
+		-an btnNurbsBase"bottom"
+		-af btnNurbsBase"left" 400
+		-an btnNurbsBase"right" 
+		
+		-af featherObjTsl "top" 30
+		-an featherObjTsl "bottom"
+		-af featherObjTsl "left" 90
+		-an featherObjTsl "right"
+		
+
+        -af featherTxt "top" 30
+		-an featherTxt "bottom"
+		-af featherTxt "left" 5
+		-an featherTxt "right"
+
+		-af featherCountSliderU "top" 140
+		-an featherCountSliderU "bottom"
+		-an featherCountSliderU "left"
+		-an featherCountSliderU "right" 
+
+		-af featherRandomU"top" 165
+		-an featherRandomU"bottom"
+		-an featherRandomU"left"
+		-an featherRandomU"right" 
+
+		-af featherCountSliderV"top" 190
+		-an featherCountSliderV"bottom"
+		-an featherCountSliderV"left"
+		-an featherCountSliderV"right" 
+
+		-af featherRandomV"top" 215
+		-an featherRandomV"bottom"
+		-an featherRandomV"left"
+		-an featherRandomV"right" 
+
+		-af initialOrientationValues"top" 240
+		-an initialOrientationValues"bottom"
+		-an initialOrientationValues"left"
+		-an initialOrientationValues"right" 
+
+		-af initialOrientationRandValues"top" 265
+		-an initialOrientationRandValues"bottom"
+		-an initialOrientationRandValues"left"
+		-an initialOrientationRandValues"right" 
+
+		-af initialScaleValues"top" 290
+		-an initialScaleValues"bottom"
+		-an initialScaleValues"left"
+		-an initialScaleValues"right" 
+
+		-af initialScaleRandValues"top" 315
+		-an initialScaleRandValues"bottom"
+		-an initialScaleRandValues"left"
+		-an initialScaleRandValues"right" 
+		
+		//// dup and pattern types
+		-af dupType"top" 340
+		-an dupType"bottom"
+		-af dupType"left" 2
+		-an dupType"right"
+		
+		-af patType"top" 360
+		-an patType"bottom"
+		-af patType"left" 2
+		-an patType"right"
+
+		-af buttonAttachFeathers"top" 385
+		-an buttonAttachFeathers"bottom"
+		-af buttonAttachFeathers"left" 165
+		-an buttonAttachFeathers"right" 
+		
+		-af buttonAttachSingleFeathers"top" 385
+		-an buttonAttachSingleFeathers"bottom"
+		-af buttonAttachSingleFeathers"left" 20
+		-an buttonAttachSingleFeathers"right" 
+		
+		-af buttonDeleteSingleFeathers"top" 385
+		-an buttonDeleteSingleFeathers"bottom"
+		-af buttonDeleteSingleFeathers"left" 310
+		-an buttonDeleteSingleFeathers"right"
+		
+		-af attachInfoText"top" 440
+		-an attachInfoText"bottom"
+		-af attachInfoText"left" 154
+		-an attachInfoText"right"
+		
+		mainForm;
+
+         setParent ..;
+
+     string $child2 = `formLayout mainFormMan`;
+         
+    text -l "" yourCtrlObj ;
+	textField -tx "Pick your control object" -ed 0 controlObjIndex ;
+	button -l "<<<" -w 30 -c ("loadMeinCtrl();") -ann ("add your controller") meinControllers ;
+         
+    button -label "Attach Control!" -w 120 -command "ss_featherFalloffCtrl()" -ann "attach your falloff control to selected feathers" buttonAttachControllers;
+    button -label "Create Control!" -w 120 -command "ss_createGroomerCtrl()" -ann "create a falloff control" buttonCreateControllers;
+    button -label "Delete Control!" -w 120 -command "ss_deleteFalloffCtrl()" -ann "delete a falloff control" buttonDeleteControllers;
+    
+    text -l "" yourAnimCtrl ;
+	textField -tx "Pick your groom object" -ed 0 AnimController ;
+	button -l "<<<" -w 30 -c ("loadMeinGroomer();") -ann ("Attach your groom object") meinAnimControllers ;
+	
+	floatSliderGrp -label "Feather Length" -field true
+   	-minValue 0.0 -maxValue 100
+       -fieldMinValue -100 -fieldMaxValue 100
+       -value 5 -pre 3 -ann "for better results, the length (in maya units) of the feather is required for easier grooming" featherLengthSlider;
+       
+    radioButtonGrp -numberOfRadioButtons 3
+    -label " Feather Stretching" -labelArray3 "Off" "Y" "XYZ" -select 2 -ann "allows for the feathers to be stretched by the sculpt groomer" fStretching;  
+         
+    button -label "Remove Sculpt Groomer!" -w 130 -command "ss_deleteSculptGroom()" -ann "click to remove the sculpt groomer " buttonRemoveSculptGroom; //buttonAttachAnimControllers
+    button -label "Attach Sculpt Groomer!" -w 130 -command "ss_sculptGroom ()" -ann "click to attach your sculpt groomer" buttonAttachSculptGroom; //buttonCreateAnimControllers
+    
+    button -label "Reset Rotate!" -w 75 -command "ss_resetFalloffRotate ()" -ann "resets the rotation values for feathers that have been effected by a falloff control" buttonResetRotGroom;
+    
+    button -l "Create Comb" -w 80 -c ("ss_createFeatherBrush ();") -ann "Click To Create A Feather Comb" buttonCreateComb ;
+    text -l "   " yourCombBrush ;    
+    textField -tx "add your Comb" -ed 0 myComb ;
+	button -l "<<<" -w 30 -c ("loadComb();") -ann "click to add your comb to the text field" btnCombBase ;
+	
+	floatSliderGrp -label "Feather Length" -field true
+   	-minValue 0.0 -maxValue 100
+       -fieldMinValue -100 -fieldMaxValue 100
+       -value 5 -pre 3 -ann "for better results, the length (in maya units) of the feather is required for easier grooming" featherCombLengthSlider;
+	
+	button -l "Attach Comb!" -w 90 -c ("ss_attachFeatherBrush();") -ann "click to attach selected feathers to comb" btnAttachCombBase ; 
+	button -l "Remove Comb!" -w 90 -c ("ss_deleteFeatherBrush();") -ann "click to attach selected feathers to comb" btnDeleteCombBase ;
+	button -l "Reset Feathers!" -w 90 -c ("ss_resetFeatherComb();") -ann "click to attach selected feathers to comb" btnResetCombBase ;    
+    
+    text -l "Character Object:" charMeshTxt ;
+	textField -tx "Pick your main character mesh" -ed 0 charMeshSurface ;
+	button -l "<<<" -w 30 -c ("loadCharMesh();") -ann ("click to add your main character mesh or any other influence mesh") btnCharMeshBase ;
+	
+	text -l "Control Nurbs:      " ctrlNurbsTxt ;
+	textField -tx "Pick your control object" -ed 0 ctrlNurbsSurface ;
+	button -l "<<<" -w 30 -c ("loadDynNurbs();") -ann ("click to add your control object") btnCtrlNurbsBase ;
+	
+	button -label "Cache Dynamics!" -w 120 -command "ss_cacheFeatherDynamics ()" -ann "To cache the dynamics on the control mesh, add it to the control mesh text field and hit this button." buttonBakeDyn;
+    button -label "Attach Dynamics!" -w 120 -command "ss_featherDyn ()" -ann "Press to make the selected feathers dynamic" buttonAttachDyn;
+    button -label "Remove Dynamics!" -w 120 -command "ss_removeFeatherDynamics ()" -ann "press to delete dynamics on selected control mesh, the feathers will revert back to their orientation prior to applying dynamics" buttonRemoveDyn;
+    
+    floatSliderGrp -label "Feather Length" -field true
+   	-minValue 0.0 -maxValue 100
+       -fieldMinValue -100 -fieldMaxValue 100
+       -value 5 -pre 3 -ann "for better results, the length (in maya units) of the feather is required for easier grooming" featherDynLengthSlider;
+       
+    button -label "Reconnect Dynamics!" -w 120 -command "ss_reconnectFeatherDynamics ()" -ann "If the softbody object is accidently disconnected from it's particle object this will reconnect them" buttonReconDyn;
+   
+    text -l "www.eye-for-complexity.com" -ann "Dodo Master V0.2 30/10/2010 Copyright ©2010 Semir Saleh All Rights Reserved" ctrlInfoText ;
+    text -l "------------------------------------------ Sculpt Grooming ---------------------------------------" groomInfoText ;
+    text -l "------------------------------------------ Feather Comb ------------------------------------------" combInfoText ;
+    text -l "------------------------------------------- Falloff Control -----------------------------------------" AnimCtrlInfoText ;
+    text -l "----------------------------------------- Secondary Motion --------------------------------------" DynCtrlInfoText ;
+    text -l "------------------------------------------- Reset Control ------------------------------------------" groomerReset ;
+    
+     formLayout -e
+         
+         
+		-af yourCtrlObj"top" 25
+		-an yourCtrlObj"bottom"
+		-af yourCtrlObj"left" 5 
+		-an yourCtrlObj"right" 
+		
+		-af controlObjIndex "top" 25
+		-an controlObjIndex "bottom"
+		-ac controlObjIndex "left" 5 yourCtrlObj 
+		-ac controlObjIndex "right" 5 meinControllers
+		
+		-af meinControllers"top" 25
+		-an meinControllers"bottom"
+		-af meinControllers"left" 400 
+		-an meinControllers"right" 
+		
+		-af buttonAttachControllers"top" 50
+		-an buttonAttachControllers"bottom"
+		-af buttonAttachControllers"left" 165
+		-an buttonAttachControllers"right" 
+		
+		-af buttonCreateControllers"top" 50
+		-an buttonCreateControllers"bottom"
+		-af buttonCreateControllers"left" 20
+		-an buttonCreateControllers"right"
+		
+		-af buttonDeleteControllers"top" 50
+		-an buttonDeleteControllers"bottom"
+		-af buttonDeleteControllers"left" 310
+		-an buttonDeleteControllers"right"   
+		/////HELPING TEXT/////////////////////
+			
+		-af groomInfoText"top" 135
+		-an groomInfoText"bottom"
+		-af groomInfoText"left" 20
+		-an groomInfoText"right" 
+		
+		-af AnimCtrlInfoText"top" 5
+		-an AnimCtrlInfoText"bottom"
+		-af AnimCtrlInfoText"left" 20
+		-an AnimCtrlInfoText"right" 
+		
+		-af groomerReset"top" 80
+		-an groomerReset"bottom"
+		-af groomerReset"left" 20
+		-an groomerReset"right"
+		/////HELPING TEXT/////////////////
+		-af yourAnimCtrl"top" 150
+		-an yourAnimCtrl"bottom"
+		-af yourAnimCtrl"left" 5 
+		-an yourAnimCtrl"right" 
+		
+		-af AnimController "top" 150
+		-an AnimController "bottom"
+		-ac AnimController "left" 5 yourCtrlObj 
+		-ac AnimController "right" 5 meinControllers
+		
+		-af meinAnimControllers"top" 150
+		-an meinAnimControllers"bottom"
+		-af meinAnimControllers"left" 400 
+		-an meinAnimControllers"right" 
+		
+		-af featherLengthSlider"top" 175
+		-an featherLengthSlider"bottom"
+		-an featherLengthSlider"left"
+		-an featherLengthSlider"right" 
+		
+		-af fStretching"top" 200
+		-an fStretching"bottom"
+		-af fStretching"left" 2
+		-an fStretching"right"
+		
+		-af buttonRemoveSculptGroom"top" 225
+		-an buttonRemoveSculptGroom"bottom"
+		-af buttonRemoveSculptGroom"left" 235
+		-an buttonRemoveSculptGroom"right" 
+		
+		-af buttonAttachSculptGroom"top" 225
+		-an buttonAttachSculptGroom"bottom"
+		-af buttonAttachSculptGroom"left" 90
+		-an buttonAttachSculptGroom"right"
+		
+		-af buttonResetRotGroom"top" 100
+		-an buttonResetRotGroom"bottom"
+		-af buttonResetRotGroom"left" 190
+		-an buttonResetRotGroom"right"
+	
+		-af charMeshTxt "top" 380
+		-an charMeshTxt "bottom"
+		-af charMeshTxt "left" 18
+		-an charMeshTxt "right"
+
+		-af charMeshSurface "top" 380
+		-an charMeshSurface "bottom"
+		-ac charMeshSurface "left" 5 charMeshTxt 
+		-ac charMeshSurface "right" 5 btnCharMeshBase
+
+		-af btnCharMeshBase"top" 380
+		-an btnCharMeshBase"bottom"
+		-af btnCharMeshBase"left" 400
+		-an btnCharMeshBase"right" 
+		
+		-af ctrlNurbsTxt "top" 410
+		-an ctrlNurbsTxt "bottom"
+		-af ctrlNurbsTxt "left" 18
+		-an ctrlNurbsTxt "right"
+
+		-af ctrlNurbsSurface "top" 410
+		-an ctrlNurbsSurface "bottom"
+		-ac ctrlNurbsSurface "left" 5 ctrlNurbsTxt 
+		-ac ctrlNurbsSurface "right" 5 btnCtrlNurbsBase
+
+		-af btnCtrlNurbsBase"top" 410
+		-an btnCtrlNurbsBase"bottom"
+		-af btnCtrlNurbsBase"left" 400 
+		-an btnCtrlNurbsBase"right" 
+		
+		-af buttonBakeDyn"top" 460
+		-an buttonBakeDyn"bottom"
+		-af buttonBakeDyn"left" 165
+		-an buttonBakeDyn"right" 
+		
+		-af buttonAttachDyn"top" 460
+		-an buttonAttachDyn"bottom"
+		-af buttonAttachDyn"left" 20
+		-an buttonAttachDyn"right"
+		
+		-af buttonRemoveDyn"top" 460
+		-an buttonRemoveDyn"bottom"
+		-af buttonRemoveDyn"left" 310
+		-an buttonRemoveDyn"right"   
+		
+		-af featherDynLengthSlider"top" 430
+		-an featherDynLengthSlider"bottom"
+		-an featherDynLengthSlider"left"
+		-an featherDynLengthSlider"right"
+		
+		-af DynCtrlInfoText"top" 360
+		-an DynCtrlInfoText"bottom"
+		-af DynCtrlInfoText"left" 20
+		-an DynCtrlInfoText"right" 
+		
+		-af buttonReconDyn"top" 490
+		-an buttonReconDyn"bottom"
+		-af buttonReconDyn"left" 310
+		-an buttonReconDyn"right"
+				
+		-af combInfoText"top" 260
+		-an combInfoText"bottom"
+		-af combInfoText"left" 20
+		-an combInfoText"right" 
+		
+		-af buttonCreateComb "top" 330
+		-an buttonCreateComb "bottom"
+		-af buttonCreateComb "left" 45
+		-an buttonCreateComb "right"
+
+		-af myComb "top" 282
+		-an myComb "bottom"
+		-ac myComb "left" 5 yourCombBrush 
+		-ac myComb "right" 5 btnCombBase
+
+		-af btnCombBase"top" 280
+		-an btnCombBase"bottom"
+		-af btnCombBase"left" 400 
+		-an btnCombBase"right" 
+		
+		-af btnAttachCombBase"top" 330
+		-an btnAttachCombBase"bottom"
+		-af btnAttachCombBase"left" 135
+		-an btnAttachCombBase"right"
+		
+		-af btnDeleteCombBase"top" 330
+		-an btnDeleteCombBase"bottom"
+		-af btnDeleteCombBase"left" 235
+		-an btnDeleteCombBase"right"
+		
+		-af btnResetCombBase"top" 330
+		-an btnResetCombBase"bottom"
+		-af btnResetCombBase"left" 335
+		-an btnResetCombBase"right"
+		
+		-af featherCombLengthSlider"top" 305
+		-an featherCombLengthSlider"bottom"
+		-an featherCombLengthSlider"left"
+		-an featherCombLengthSlider"right" 
+		
+		-af ctrlInfoText"top" 530
+		-an ctrlInfoText"bottom"
+		-af ctrlInfoText"left" 154
+		-an ctrlInfoText"right"
+		
+         mainFormMan;
+         
+         setParent ..;
+
+     tabLayout -edit
+         -tabLabel $child1 "Attachment" -tabLabel $child2 "Adjustment"
+         $tabs;
+
+ showWindow;
+
+
+}  
+///////////// Procedures for loading objects into ui text fields,  special thanks to Michael Comet!////////////// 
+global proc loadNurbsMesh()
+{
+	string $objs[] = `ls -sl -fl` ;
+	string $base = $objs[0] ;
+	
+	textField -e -tx $base nurbSkinSurface ;
+	
+	if ($base == "" || objExists($base) != true)
+		return ;
+}
+
+global proc loadDynNurbs()
+{
+	string $objs[] = `ls -sl -fl` ;
+	string $base = $objs[0] ;
+	
+	textField -e -tx $base ctrlNurbsSurface ;
+	
+	if ($base == "" || objExists($base) != true)
+		return ;
+}
+
+global proc loadCharMesh()
+{
+	string $objs[] = `ls -sl -fl` ;
+	string $base = $objs[0] ;
+	
+	textField -e -tx $base charMeshSurface ;
+	
+	if ($base == "" || objExists($base) != true)
+		return ;
+}
+
+
+global proc loadFeatherMesh()
+{
+	string $objs[] = `ls -sl -fl` ;
+	string $base = $objs[0] ;
+	
+	textField -e -tx $base featherObj ;
+	
+	if ($base == "" || objExists($base) != true)
+		return ;
+}
+
+global proc loadMeinGroomer()
+{
+	string $objs[] = `ls -sl -fl` ;
+	string $base = $objs[0] ;
+	
+	textField -e -tx $base AnimController ;
+	
+	if ($base == "" || objExists($base) != true)
+		return ;
+}
+
+global proc loadMeinCtrl()
+{
+	string $objs[] = `ls -sl -fl` ;
+	string $base = $objs[0] ;
+	
+	textField -e -tx $base controlObjIndex ;
+	
+	if ($base == "" || objExists($base) != true)
+		return ;
+}
+global proc loadComb()
+{
+	string $objs[] = `ls -sl -fl` ;
+	string $base = $objs[0] ;
+	
+	textField -e -tx $base myComb ;
+	
+	if ($base == "" || objExists($base) != true)
+		return ;
+} 
+//////////////////////////////////////////////////////////////
+//////////////////// load for items textScrollList
+global proc ss_returnSel()
+{
+
+string $selItems[] = `ls -sl`;
+	
+textScrollList -e -removeAll featherObjTsl ;
+
+for ($i = 0; $i<size($selItems);$i++){
+
+    textScrollList -e -a $selItems[$i] featherObjTsl ;
+
+    }
+
+}
+/////////////////////////////////////////////////////////
+/////////////////// clear TextScrollList
+global proc ss_clearTsl()
+{
+textScrollList -e -removeAll featherObjTsl ;
+
+}
+/////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////ATTACH FEATHERS/////////////////////////////////////////////////
+global proc ss_featherPlacement ()
+{
+
+string $selectedFeatherObjs[] = `textScrollList -q -allItems featherObjTsl`;
+string $myFeatherObjSelection;  ///// stores the object the user wants to duplicate
+string $myNurbs = `textField -q -text nurbSkinSurface`;   /// name of the nurbs surface for feather attachment
+string $myNurbsShape[];
+int $featherIndex;
+int $featherCount = 0;
+int $oddNumU = 1;
+int $oddNumV = 1;
+int $duplicationType  = `radioButtonGrp -q -select dupType`;
+int $patternType = `radioButtonGrp -q -select patType`;
+float $featherCountU = `intSliderGrp -q -value featherCountSliderU`;  ////amount of feathers in U
+float $featherCountV = `intSliderGrp -q -value featherCountSliderV`;  ////amount of feathers in V
+float $placeU = 1.0 / $featherCountU;  
+float $placeV = 1.0 / $featherCountV;  
+float $placeUcal = $placeU / 2; /// result equals the U placement increments
+float $placeVcal = $placeV / 2; /// result equals the U placement increments
+float $fPosRandV = `floatSliderGrp -q -value featherRandomV`;
+float $fPosRandU = `floatSliderGrp -q -value featherRandomU`;
+float $initOriX = `floatFieldGrp -q -value1 initialOrientationValues`;
+float $initOriY = `floatFieldGrp -q -value2 initialOrientationValues`;
+float $initOriZ = `floatFieldGrp -q -value3 initialOrientationValues`;
+float $initOriRandX = `floatFieldGrp -q -value1 initialOrientationRandValues`;
+float $initOriRandY = `floatFieldGrp -q -value2 initialOrientationRandValues`;
+float $initOriRandZ = `floatFieldGrp -q -value3 initialOrientationRandValues`;
+float $initScaleX = `floatFieldGrp -q -value1 initialScaleValues`;
+float $initScaleY = `floatFieldGrp -q -value2 initialScaleValues`;
+float $initScaleZ = `floatFieldGrp -q -value3 initialScaleValues`;
+float $initScaleRandX = `floatFieldGrp -q -value1 initialScaleRandValues`;
+float $initScaleRandY = `floatFieldGrp -q -value2 initialScaleRandValues`;
+float $initScaleRandZ = `floatFieldGrp -q -value3 initialScaleRandValues`;
+float $brickU;
+float $brickV;
+
+///error checking///
+
+select -r $myNurbs;
+pickWalk -d down;
+$myNurbsShape = `ls -sl`;
+
+if (`objectType $myNurbsShape[0]` !=  "nurbsSurface"){
+    error "feathers can only be attached to a nurbs surface";
+    }
+
+if (size($selectedFeatherObjs) == 0){
+    error "you must add one or more feather objects to the text field";
+}
+if ($selectedFeatherObjs[0] == "Add one or more feather objects"){
+    error "you must add one or more feather objects to the text field";
+}
+
+if ($myNurbs == ""){
+    error "you must add a nurbs surface to the text field";
+}
+if ($myNurbs == "Pick your nurbs surface"){
+    error "you must add a nurbs surface to the text field";
+}
+///error checking///
+////////////////////////
+
+
+int $i;   //// counter for the U direction
+int $j;  //// counter for the V direction
+
+for ( $i = 1 ; $i <$featherCountU + 1 ; ++$i ){
+    for ( $j = 1 ; $j <$featherCountV + 1 ; ++$j){
+        
+        //--- deciding at random which feather object to duplicate
+        $featherIndex = rand(0,size($selectedFeatherObjs)); 
+        $myFeatherObjSelection = $selectedFeatherObjs[$featherIndex];
+         
+        select -r $myFeatherObjSelection;
+        
+        if ($duplicationType == 1){
+            duplicate;
+        }
+        else if ($duplicationType == 2){
+            instance;
+        }
+        move -a 0 0 0;
+        rotate -a 0 0 0;
+        makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+        string $featherDup[] = `ls -sl`; 
+        spaceLocator -n ($featherDup[0] + "_DistanceLoc");
+        setAttr ($featherDup[0] + "_DistanceLoc.visibility") 0;  
+        select -r $featherDup[0];  
+    
+        addAttr -ln "Position_ctrls" -k 1 -at double  -min 0 -max 1 -dv 0 ("|" + $featherDup[0]);
+        setAttr -lock true ($featherDup[0]+".Position_ctrls");
+        addAttr -ln "Pos_U" -k 1 -at double  -min 0 -max 1.5 -dv 0 ("|" + $featherDup[0]);
+        addAttr -ln "Pos_V" -k 1 -at double  -min 0 -max 1.5 -dv 0 ("|" + $featherDup[0]);
+       
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "CTRL");
+        xform -os -piv 0 0 0;
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "DYN");
+        xform -os -piv 0 0 0;
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "INITIAL");
+        xform -os -piv 0 0 0;                                                                      
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "OFFSET");
+        xform -os -piv 0 0 0;
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH");
+        xform -os -piv 0 0 0;
+
+        parent ($featherDup[0] + "_DistanceLoc") ($myNurbs + "_" + $featherDup[0] + "_" + "CTRL");
+        
+        setAttr -lock true -keyable false -channelBox false ($featherDup[0]+".tx");
+        setAttr -lock true -keyable false -channelBox false ($featherDup[0]+".ty");
+        setAttr -lock true -keyable false -channelBox false ($featherDup[0]+".tz");
+         
+        createNode follicle; 
+        pickWalk -d up;
+        rename `ls -sl` ($myNurbs + "_" + $featherDup[0] + "_Follicle");
+        pickWalk -d down;
+        string $meinFollicle[] = `ls -sl`;
+        
+        select -r $meinFollicle;
+	    pickWalk -d up;
+	    $meinFollicleTrans = `ls -sl`;
+
+        connectAttr -f ($featherDup[0] +".Pos_U") ($meinFollicle[0] +".parameterU");
+        connectAttr -f ($featherDup[0] +".Pos_V") ($meinFollicle[0] +".parameterV");
+        
+        
+        if ($i <= 1){
+        $brickU =  $placeUcal + rand (0, $fPosRandU);
+        } 
+        if ($i > 1) { 
+        $brickU =  $placeUcal * $oddNumU + rand (0, $fPosRandU);  
+        }
+        
+        if ($j <= 1){
+        $brickV =  $placeVcal + rand (0, $fPosRandV);
+        } 
+        if ($j > 1) { 
+        $brickV =  $placeVcal * $oddNumV + rand (0, $fPosRandV);  
+        }
+        
+        ///// grid pattern
+        if ($patternType == 1){
+        setAttr ($featherDup[0] +".Pos_U") $brickU;       
+        setAttr ($featherDup[0] +".Pos_V") $brickV;
+        }
+        
+        if ($patternType == 2){
+//////////////brick pattern Offset U///////////////////        
+                if ($i % 2 == 0) {
+   setAttr ($featherDup[0] +".Pos_U") ($brickV + $placeVcal); 
+}
+else {
+   setAttr ($featherDup[0] +".Pos_U") $brickV; 
+    } 
+
+   setAttr ($featherDup[0] +".Pos_V") $brickU; 
+    }
+    
+    if ($patternType == 3){   
+////////////////brick pattern Offset V/////////////////
+   setAttr ($featherDup[0] +".Pos_U") $brickV; 
+
+  if ($j % 2 == 0) {
+   setAttr ($featherDup[0] +".Pos_V") ($brickU + $placeUcal); // even
+}
+else {
+   setAttr ($featherDup[0] +".Pos_V") $brickU; 
+    } 
+
+}
+
+   
+        select -r $myNurbs;
+        pickWalk -d down;
+        string $surfaceMan[] = `ls -sl`;
+        string $surfaceType = `objectType $surfaceMan[0]`;
+
+        if ($surfaceType == "mesh")
+            {
+            connectAttr -f ($myNurbs +".outMesh") ($meinFollicle[0] +".inputMesh");
+
+            }
+        if ($surfaceType == "nurbsSurface")
+            {
+            connectAttr -f ($myNurbs +".local") ($meinFollicle[0] +".inputSurface");
+            }         
+        
+        connectAttr -f ($myNurbs+".worldMatrix[0]") ($meinFollicle[0]+".inputWorldMatrix");
+        connectAttr -f ($meinFollicle[0]+".outTranslate") ($meinFollicleTrans[0]+".translate");
+        connectAttr -f ($meinFollicle[0]+".outRotate") ($meinFollicleTrans[0]+".rotate"); 
+        
+        connectAttr -f ($meinFollicleTrans[0]+".translate") ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH.translate");
+        connectAttr -f ($meinFollicleTrans[0]+".rotate") ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH.rotate");
+        
+        setAttr ($meinFollicleTrans[0]+".visibility") 0;
+        
+        select -r  ($myNurbs + "_" + $featherDup[0] + "_" + "OFFSET");
+        rotate -r 90 0 0;  
+
+        select -r  ($myNurbs + "_" + $featherDup[0] + "_" + "INITIAL");
+        rotate -r ($initOriX + rand($initOriRandX * -1, $initOriRandX)) ($initOriY + rand ($initOriRandY * -1, $initOriRandY)) ($initOriZ + rand ($initOriRandZ * -1, $initOriRandZ));
+        select -r $featherDup[0];
+        scale -r ($initScaleX + rand($initScaleRandX * -1, $initScaleRandX)) ($initScaleY + rand($initScaleRandY * -1, $initScaleRandY)) ($initScaleZ + rand($initScaleRandZ * -1, $initScaleRandZ));
+
+        ////////////////putting the follicle nodes and feather group nodes into 2 group nodes// 
+        if (`objExists ($myNurbs + "_feathers_grp")`){
+        parent ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH") ($myNurbs + "_feathers_grp");
+        } else{
+        group -em -n ($myNurbs + "_feathers_grp");
+        parent ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH") ($myNurbs + "_feathers_grp");
+        }
+        
+        if (`objExists ($myNurbs + "_Follicle_grp")`){
+        parent ($myNurbs + "_" + $featherDup[0] + "_Follicle") ($myNurbs + "_Follicle_grp");
+        } else {
+        group -em -n ($myNurbs + "_Follicle_grp");
+        parent  ($myNurbs + "_" + $featherDup[0] + "_Follicle") ($myNurbs + "_Follicle_grp");
+        }
+        
+        
+        if (`objExists ($myNurbs + "_featherCreationSel")`){
+        select -r $featherDup[0];
+       	sets -add ($myNurbs + "_featherCreationSel");
+       	} else {
+       	select -r $featherDup[0];
+       	sets -name ($myNurbs + "_featherCreationSel");
+       	}
+       		
+        $oddNumV = $oddNumV + 2;
+        $featherCount++ ;       
+        
+     }
+        $oddNumV = 1;
+        $oddNumU = $oddNumU + 2;   
+}
+
+select -cl;
+}
+//////////////////////////ATTACH SINGLE FEATHERS///////////////////////////////////////
+global proc ss_attachSingleFeathers (){
+
+string $selectedFeatherObjs[] = `textScrollList -q -allItems featherObjTsl`;
+string $SurfacePointSel[] = `ls -sl`;
+string $myFeatherObjSelection;
+string $myNurbs = `textField -q -text nurbSkinSurface`;
+string $myNurbsShape[]; 
+string $tempSurfacePointSel[];
+
+int $featherIndex;
+int $featherCount = 0;
+int $duplicationType  = `radioButtonGrp -q -select dupType`;
+int $elCounto = 0;
+float $initOriX = `floatFieldGrp -q -value1 initialOrientationValues`;
+float $initOriY = `floatFieldGrp -q -value2 initialOrientationValues`;
+float $initOriZ = `floatFieldGrp -q -value3 initialOrientationValues`;
+float $initOriRandX = `floatFieldGrp -q -value1 initialOrientationRandValues`;
+float $initOriRandY = `floatFieldGrp -q -value2 initialOrientationRandValues`;
+float $initOriRandZ = `floatFieldGrp -q -value3 initialOrientationRandValues`;
+float $initScaleX = `floatFieldGrp -q -value1 initialScaleValues`;
+float $initScaleY = `floatFieldGrp -q -value2 initialScaleValues`;
+float $initScaleZ = `floatFieldGrp -q -value3 initialScaleValues`;
+float $initScaleRandX = `floatFieldGrp -q -value1 initialScaleRandValues`;
+float $initScaleRandY = `floatFieldGrp -q -value2 initialScaleRandValues`;
+float $initScaleRandZ = `floatFieldGrp -q -value3 initialScaleRandValues`;
+
+
+///error checking///
+
+select -r $myNurbs;
+pickWalk -d down;
+$myNurbsShape = `ls -sl`;
+
+if (`objectType $myNurbsShape[0]` !=  "nurbsSurface"){
+    error "feathers can only be attached to a nurbs surface";
+    }
+
+if (size($selectedFeatherObjs) == 0){
+    error "you must add one or more feather objects to the text field";
+}
+if ($selectedFeatherObjs[0] == "Add one or more feather objects"){
+    error "you must add one or more feather objects to the text field";
+}
+
+if ($myNurbs == ""){
+    error "you must add a nurbs surface to the text field";
+}
+if ($myNurbs == "Pick your nurbs surface"){
+    error "you must add a nurbs surface to the text field";
+}
+
+if (size($SurfacePointSel) == 0){
+    error "you must select 1 or more surface points";
+}
+///error checking///
+////////////////////////
+
+for( $item in $SurfacePointSel )
+		{
+        
+        //--- deciding at random which feather object to duplicate
+        $featherIndex = rand(0,size($selectedFeatherObjs)); 
+        $myFeatherObjSelection = $selectedFeatherObjs[$featherIndex];
+                
+        //////////Find UV position from surface point selection////////////        
+        select $SurfacePointSel[$elCounto];		
+		
+		$tempSurfacePointSel = `ls -sl`;
+		
+		string $buffer[];
+	    tokenize $tempSurfacePointSel[0] "[]" $buffer;
+	    
+	    if( size($buffer) == 1 ) {
+            error "you must select 1 or more surface points";  /// little more error checking
+        } 
+	    
+	        
+	    float $surfPointU = $buffer[1];
+		float $surfPointV = $buffer[2];
+		float $minU = `getAttr ($myNurbs + ".minValueU")`;
+		float $MaxU = `getAttr ($myNurbs + ".maxValueU")`;
+		float $minV = `getAttr ($myNurbs + ".minValueV")`;
+		float $MaxV = `getAttr ($myNurbs + ".maxValueV")`;
+		
+		createNode setRange -n ("setRange_" + $myFeatherObjSelection + "_UVcalc");
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.minX") 0;
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.minY") 0;
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.maxX") 1;
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.maxY") 1;
+		
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.oldMinX") $minU;
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.oldMinY") $minV;
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.oldMaxX") $MaxU;
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.oldMaxY") $MaxV;
+		
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.valueX") $surfPointU;
+		setAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.valueY") $surfPointV;
+		
+		float $calcPosU = `getAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.outValueX")`;
+		float $calcPosV = `getAttr ("setRange_" + $myFeatherObjSelection + "_UVcalc.outValueY")`;
+        // SAME PROCEDURE AT SS_FEATHERATTACH WITH A FEW MODIFICATIONS/////////////////	
+        
+        
+		select $myFeatherObjSelection;
+        
+        if ($duplicationType == 1){
+            duplicate;
+        }
+        else if ($duplicationType == 2){
+            instance;
+        }
+        move -a 0 0 0;
+        rotate -a 0 0 0;
+		string $featherDup[] = `ls -sl`; 
+        spaceLocator -n ($featherDup[0] + "_DistanceLoc");
+        setAttr ($featherDup[0] + "_DistanceLoc.visibility") 0;  
+        select -r $featherDup[0];  
+    
+        addAttr -ln "Position_ctrls" -k 1 -at double  -min 0 -max 1 -dv 0 ("|" + $featherDup[0]);
+        setAttr -lock true ($featherDup[0]+".Position_ctrls");
+        addAttr -ln "Pos_U" -k 1 -at double  -min 0 -max 1.5 -dv 0 ("|" + $featherDup[0]);
+        addAttr -ln "Pos_V" -k 1 -at double  -min 0 -max 1.5 -dv 0 ("|" + $featherDup[0]);
+      
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "CTRL");
+        xform -os -piv 0 0 0;
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "DYN");
+        xform -os -piv 0 0 0;
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "INITIAL");
+        xform -os -piv 0 0 0;                                                                      
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "OFFSET");
+        xform -os -piv 0 0 0;
+        group -n ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH");
+        xform -os -piv 0 0 0;  
+        
+        parent ($featherDup[0] + "_DistanceLoc") ($myNurbs + "_" + $featherDup[0] + "_" + "CTRL");
+        
+        setAttr -lock true -keyable false -channelBox false ($featherDup[0]+".tx");
+        setAttr -lock true -keyable false -channelBox false ($featherDup[0]+".ty");
+        setAttr -lock true -keyable false -channelBox false ($featherDup[0]+".tz");
+        
+        createNode follicle; 
+        pickWalk -d up;
+        rename `ls -sl` ($myNurbs + "_" + $featherDup[0] + "_Follicle");
+        pickWalk -d down;
+        string $meinFollicle[] = `ls -sl`;
+        
+        select -r $meinFollicle;
+	    pickWalk -d up;
+	    $meinFollicleTrans = `ls -sl`;
+
+        connectAttr -f ($featherDup[0] +".Pos_U") ($meinFollicle[0] +".parameterU");
+        connectAttr -f ($featherDup[0] +".Pos_V") ($meinFollicle[0] +".parameterV");
+        
+        setAttr ($featherDup[0] +".Pos_U") $calcPosU;    
+        setAttr ($featherDup[0] +".Pos_V") $calcPosV;    
+        
+        connectAttr -f ($myNurbs +".local") ($meinFollicle[0] +".inputSurface");
+        
+        connectAttr -f ($myNurbs+".worldMatrix[0]") ($meinFollicle[0]+".inputWorldMatrix");
+        connectAttr -f ($meinFollicle[0]+".outTranslate") ($meinFollicleTrans[0]+".translate");
+        connectAttr -f ($meinFollicle[0]+".outRotate") ($meinFollicleTrans[0]+".rotate"); 
+        
+        connectAttr -f ($meinFollicleTrans[0]+".translate") ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH.translate");
+        connectAttr -f ($meinFollicleTrans[0]+".rotate") ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH.rotate");
+        
+        setAttr ($meinFollicleTrans[0]+".visibility") 0;
+        
+        select -r  ($myNurbs + "_" + $featherDup[0] + "_" + "OFFSET");
+        rotate -r 90 0 0; 
+
+        select -r  ($myNurbs + "_" + $featherDup[0] + "_" + "INITIAL");
+        rotate -r ($initOriX + rand($initOriRandX * -1, $initOriRandX)) ($initOriY + rand ($initOriRandY * -1, $initOriRandY)) ($initOriZ + rand ($initOriRandZ * -1, $initOriRandZ));
+        select -r $featherDup[0];
+        scale -r ($initScaleX + rand($initScaleRandX * -1, $initScaleRandX)) ($initScaleY + rand($initScaleRandY * -1, $initScaleRandY)) ($initScaleZ + rand($initScaleRandZ * -1, $initScaleRandZ));
+
+        //putting the follicle nodes and feather group nodes into 2 group nodes
+        if (`objExists ($myNurbs + "_feathers_grp")`){
+        parent ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH") ($myNurbs + "_feathers_grp");
+        } else{
+        group -em -n ($myNurbs + "_feathers_grp");
+        parent ($myNurbs + "_" + $featherDup[0] + "_" + "ATTACH") ($myNurbs + "_feathers_grp");
+        }
+        
+        if (`objExists ($myNurbs + "_Follicle_grp")`){
+        parent ($myNurbs + "_" + $featherDup[0] + "_Follicle") ($myNurbs + "_Follicle_grp");
+        } else {
+        group -em -n ($myNurbs + "_Follicle_grp");
+        parent  ($myNurbs + "_" + $featherDup[0] + "_Follicle") ($myNurbs + "_Follicle_grp");
+        }
+		
+			 
+		
+		select -r ("setRange_" + $myFeatherObjSelection + "_UVcalc");
+		delete;
+		
+if (`objExists ($myNurbs + "_featherCreationSel")`){
+        select -r $featherDup[0];
+       	sets -add ($myNurbs + "_featherCreationSel");
+       	} else {
+       	select -r $featherDup[0];
+       	sets -name ($myNurbs + "_featherCreationSel");
+       	}
+       			
+		
+		
+		$featherCount++;
+		$elCounto++;
+
+	    }
+
+select -cl;
+
+}
+///////////////////////////////DELETE SINGLE FEATHERS///////////////////////////////////
+global proc ss_deleteSingleFeathers()
+{
+
+int $elCounto = 0;  // keeps count for the looping
+string $featherForCtrl[] = `ls -sl`;  //  this stores all the names of the feathers user wants controlled
+string $tempFeatherSel[];  
+
+if (size($featherForCtrl) == 0)
+    { error " please select 1 or more feather objects";
+    }
+
+for ($i = 0; $i<size($featherForCtrl);$i++){
+    
+    if (`objExists ($featherForCtrl[$i] + "_DistanceLoc")` == 0){
+        error "you must select feather objects only";
+        }
+}        
+
+
+for( $item in $featherForCtrl )
+		{
+        select $featherForCtrl[$elCounto];		
+		pickWalk -d up;
+		pickWalk -d up;
+		pickWalk -d up;
+		pickWalk -d up;
+		pickWalk -d up;
+
+		$tempFeatherSel = `ls -sl`;
+		
+		string $buffer[];
+	    tokenize $tempFeatherSel[0] "_" $buffer;
+	    
+	    string $Nurbo = $buffer[0];
+	    string $feather = $buffer[1];
+	    
+	    
+	   
+	    
+	    if(`objExists ($Nurbo + "_" + $feather + "_Follicle")` )  /// error checking///
+	    {select -r ($Nurbo + "_" + $feather + "_Follicle");
+	    }else { error " please select 1 or more feather objects";
+	    }   
+	    
+	    delete;
+	    select -r $tempFeatherSel[0];
+	    delete;
+	    
+		
+		$elCounto++;
+
+	    }
+}
+/////////////////////////////////////////////////////////////////////////////
+/////////////ATTACH FALLOFF CONTROL////////////////
+
+global proc ss_featherFalloffCtrl()
+{
+cycleCheck -e off;
+int $elCounto = 0;  // keeps count for the looping
+string $meinCtrl = `textField -q -text controlObjIndex`;//// name of the groomer
+string $featherForCtrl[] = `ls -sl`;  //  this stores all the names of the feathers user wants controlled
+string $tempFeatherSel[];  
+string $featherForCtrlShape[];
+float $meinDistance;
+float $initialScale[];
+string $meinCtrlShape = ($meinCtrl+"_DistanceLoc");
+
+/// Error Checking////
+
+if ($meinCtrl == ""){
+    error "you must add a falloff control to the text field";
+}
+
+
+if ($meinCtrl == "Pick your control object"){
+    error "you must add a groomer to the text field";
+}
+
+if (stringArrayContains ($meinCtrl, $featherForCtrl) == 1){
+    error " you must only select the feathers, please deslect the falloff control";
+    }
+
+if( size($featherForCtrl) == 0 ) {
+     error "you must select feather objects";
+} 
+
+/// Error Checking////
+
+for( $item in $featherForCtrl )
+		{
+		
+		$initialScale[0] = `getAttr ($featherForCtrl[$elCounto]+".scaleX")`;
+		$initialScale[1] = `getAttr ($featherForCtrl[$elCounto]+".scaleY")`;
+		$initialScale[2] = `getAttr ($featherForCtrl[$elCounto]+".scaleZ")`;
+
+        select $featherForCtrl[$elCounto];
+        pickWalk -d up;
+        //pickWalk -d up;
+        $featherForCtrlShape = `ls -sl`;
+              
+        
+        if (`objExists ($featherForCtrl[$elCounto] + "_DistanceLoc" + ".worldPosition[0]")`)  // little more error checking
+		   {
+		     createNode distanceBetween -n ("meinDistance_" + $meinCtrl + $elCounto);
+		     connectAttr -f ($meinCtrlShape +".worldPosition[0]")  ("meinDistance_"+ $meinCtrl + $elCounto + ".point1");
+		     connectAttr -f ($featherForCtrl[$elCounto] + "_DistanceLoc" + ".worldPosition[0]")  ("meinDistance_"+ $meinCtrl + $elCounto + ".point2");
+		  
+		   } else { error "please select only feather objects";
+		   }
+		
+		createNode multiplyDivide -n ("MultiDiv_"+"distDiv_"+ $meinCtrl + $elCounto);
+		connectAttr -f ($meinCtrl +".Falloff_Size") ("MultiDiv_"+"distDiv_"+ $meinCtrl + $elCounto+".input2X");
+
+		setAttr ("MultiDiv_"+"distDiv_"+ $meinCtrl + $elCounto+".operation") 2;
+
+		connectAttr -f ("meinDistance_" + $meinCtrl + $elCounto+ ".distance") ("MultiDiv_"+"distDiv_"+ $meinCtrl + $elCounto +".input1X");
+
+		createNode clamp -n ("clamp_" + $meinCtrl + $elCounto);
+
+		setAttr ("clamp_" + $meinCtrl + $elCounto+".maxR") 1;
+
+		connectAttr -f ("MultiDiv_"+"distDiv_"+ $meinCtrl + $elCounto +".outputX") ("clamp_" + $meinCtrl + $elCounto + ".inputR");
+
+		createNode plusMinusAverage -n  ("plusMinAv_" + $meinCtrl + $elCounto);
+
+		setAttr ("plusMinAv_" + $meinCtrl + $elCounto+".operation") 2;
+		setAttr ("plusMinAv_" + $meinCtrl + $elCounto+".input2D[0]"+".input2Dx") 1;
+		
+		///////// creating and making connections for the remapPlusMinusAverage node
+		createNode plusMinusAverage -n  ("RemapPlusMinAv_" + $meinCtrl + $elCounto);
+        setAttr ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".operation") 2;
+		setAttr ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".input3D[1]"+".input3Dx") 1;
+		setAttr ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".input3D[1]"+".input3Dy") 1;
+		setAttr ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".input3D[1]"+".input3Dz") 1;
+		connectAttr -f ($meinCtrl+".scaleX") ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".input3D[0]"+".input3Dx");
+		connectAttr -f ($meinCtrl+".scaleY") ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".input3D[0]"+".input3Dy");
+		connectAttr -f ($meinCtrl+".scaleZ") ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".input3D[0]"+".input3Dz");
+
+     	connectAttr -f ("clamp_" + $meinCtrl + $elCounto+".outputR") ("plusMinAv_" + $meinCtrl + $elCounto+".input2D[1].input2Dx");
+
+		createNode multiplyDivide -n ("MultiDiv_"+"multRot_"+ $meinCtrl + $elCounto);
+		createNode multiplyDivide -n ("MultiDiv_"+"multScale_"+ $meinCtrl + $elCounto);
+
+		connectAttr -f ("plusMinAv_" + $meinCtrl + $elCounto+".output2Dx") ("MultiDiv_"+"multRot_"+ $meinCtrl + $elCounto+".input1X");
+		connectAttr -f ("plusMinAv_" + $meinCtrl + $elCounto+".output2Dx") ("MultiDiv_"+"multScale_"+ $meinCtrl + $elCounto+".input1X");
+
+        createNode multiplyDivide -n ("multiDiv_"+"multReverse_"+$meinCtrl+$elCounto);
+        setAttr ("multiDiv_"+"multReverse_"+$meinCtrl+$elCounto+".input2X") -1;
+        
+        connectAttr -f ("MultiDiv_"+"multRot_"+ $meinCtrl + $elCounto+".outputX") ("multiDiv_"+"multReverse_"+$meinCtrl+$elCounto+".input1X");
+		
+		createNode setRange -n ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl);
+		createNode setRange -n ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto);
+		
+		setAttr ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".oldMinX") -360;
+        setAttr ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".oldMaxX") 360;
+        setAttr ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".oldMinY") -360;
+        setAttr ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".oldMaxY") 360;
+        setAttr ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".oldMinZ") -360;
+        setAttr ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".oldMaxZ") 360;
+        
+        setAttr ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".minX") 0;
+        setAttr ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".minY") 0;  
+        setAttr ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".minZ") 0;
+                  
+        setAttr ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".oldMinX") 0;
+        setAttr ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".oldMinY") 0;
+        setAttr ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".oldMinZ") 0;
+
+        setAttr ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".oldMaxX") 25;
+        setAttr ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".oldMaxY") 25;
+        setAttr ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".oldMaxZ") 25;
+
+        connectAttr -f ("multiDiv_"+"multReverse_"+$meinCtrl+$elCounto+".outputX") ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".minX");
+        connectAttr -f ("multiDiv_"+"multReverse_"+$meinCtrl+$elCounto+".outputX") ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".minY");
+        connectAttr -f ("multiDiv_"+"multReverse_"+$meinCtrl+$elCounto+".outputX") ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".minZ");
+        
+        connectAttr -f ("MultiDiv_"+"multRot_"+ $meinCtrl + $elCounto+".outputX")("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".maxX");
+        connectAttr -f ("MultiDiv_"+"multRot_"+ $meinCtrl + $elCounto+".outputX")("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".maxY");
+        connectAttr -f ("MultiDiv_"+"multRot_"+ $meinCtrl + $elCounto+".outputX")("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".maxZ");
+        
+        connectAttr -f ("MultiDiv_"+"multScale_"+ $meinCtrl + $elCounto+".outputX")("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".maxX");
+        connectAttr -f ("MultiDiv_"+"multScale_"+ $meinCtrl + $elCounto+".outputX")("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".maxY");
+        connectAttr -f ("MultiDiv_"+"multScale_"+ $meinCtrl + $elCounto+".outputX")("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".maxZ");
+     
+        connectAttr -f ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".oldMaxX")("MultiDiv_"+"multRot_"+ $meinCtrl + $elCounto+".input2X");
+        connectAttr -f ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".oldMaxX")("MultiDiv_"+"multScale_"+ $meinCtrl + $elCounto+".input2X");
+        
+        connectAttr -f ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".outValueX") ($featherForCtrlShape[0]+".rotateX");
+        connectAttr -f ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".outValueY") ($featherForCtrlShape[0]+".rotateY");
+        connectAttr -f ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".outValueZ") ($featherForCtrlShape[0]+".rotateZ");
+        
+        createNode plusMinusAverage -n  ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]);
+        setAttr ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".operation") 1;
+        setAttr ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".input3D[0]"+".input3Dx") $initialScale[0];
+        setAttr ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".input3D[0]"+".input3Dy") $initialScale[1];
+        setAttr ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".input3D[0]"+".input3Dz") $initialScale[2];
+        connectAttr -f ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".outValueX") ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".input3D[1]"+".input3Dx");
+        connectAttr -f ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".outValueY") ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".input3D[1]"+".input3Dy");
+        connectAttr -f ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".outValueZ") ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".input3D[1]"+".input3Dz");
+
+        connectAttr -f ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".output3Dx") ($featherForCtrl[$elCounto]+".scaleX");
+        connectAttr -f ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".output3Dy") ($featherForCtrl[$elCounto]+".scaleY");
+        connectAttr -f ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]+".output3Dz") ($featherForCtrl[$elCounto]+".scaleZ");
+        
+        connectAttr -f ($meinCtrl+".rotateX") ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".valueX");
+        connectAttr -f ($meinCtrl+".rotateY") ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".valueY");
+        connectAttr -f ($meinCtrl+".rotateZ") ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl +".valueZ");	
+        
+        connectAttr -f ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".output3Dx") ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".valueX");
+        connectAttr -f ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".output3Dy") ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".valueY");
+        connectAttr -f ("RemapPlusMinAv_" + $meinCtrl + $elCounto+".output3Dz") ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto+".valueZ");
+                
+        select -r ("meinDistance_" + $meinCtrl + $elCounto);
+        select -add	("MultiDiv_"+"distDiv_"+ $meinCtrl + $elCounto);
+        select -add ("clamp_" + $meinCtrl + $elCounto);
+        select -add ("plusMinAv_" + $meinCtrl + $elCounto);
+        select -add ("MultiDiv_"+"multRot_"+ $meinCtrl + $elCounto);
+        select -add ("MultiDiv_"+"multScale_"+ $meinCtrl + $elCounto);
+        select -add ("multiDiv_"+"multReverse_"+$meinCtrl+$elCounto);
+        select -add ("setRange_"+ "RotRange" + "_" + $featherForCtrl[$elCounto] + "_" + $meinCtrl);
+        select -add ("setRange_"+ "ScaleRange" + $meinCtrl + $elCounto);
+        select -add ("RemapPlusMinAv_" + $meinCtrl + $elCounto);
+        select -add ("endPlusMinAv_" + $meinCtrl + "_" + $featherForCtrl[$elCounto]);
+        
+        if (`objExists ($meinCtrl+"_UtilityContainer")`){
+        container -edit -force   -includeShapes -includeTransform  -addNode `ls -sl` ($meinCtrl+"_UtilityContainer") ;
+        } else{
+        container -name ($meinCtrl+"_UtilityContainer") -includeShaders -includeShapes -includeTransform -force -addNode `ls -sl`;
+        }
+		
+		if (`objExists ($meinCtrl + "_featherFalloffSel")`){
+        select -r $featherForCtrl[$elCounto];
+       	sets -add ($meinCtrl + "_featherFalloffSel");
+       	} else {
+       	select -r $featherForCtrl[$elCounto];
+       	sets -name ($meinCtrl + "_featherFalloffSel");
+       	}
+       	
+		$elCounto++;
+
+	    }
+select -cl;
+textField -e -tx "" controlObjIndex ;
+
+}
+/////////////////////////FALLOFF CTRL CREATION////////////////////////////		
+global proc ss_createGroomerCtrl ()
+{
+
+    string $groomerSelection[];
+
+    curve -d 1 -p 0 3 0 -p 0 2 -2 -p 0 0 -3 -p 0 -2 -2 -p 0 -3 0 -p 0 -2 2 -p 0 0 3 
+          -p 0 2 2 -p 0 3 0 -p 2 2 0 -p 3 0 0 -p 2 -2 0 -p 0 -3 0 -p -2 -2 0 -p -3 0 0 
+          -p -2 2 0 -p 0 3 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 
+          -k 12 -k 13 -k 14 -k 15 -k 16 -n ("falloffCtrl00");
+          
+    $groomerSelection = `ls -sl`;
+    addAttr -ln "Falloff_Size" -k 1 -at double -dv 15 ("|" + $groomerSelection[0]);
+
+    spaceLocator -n ($groomerSelection[0] + "_DistanceLoc");
+    
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc" + ".tx");
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc" + ".ty");
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc" + ".tz");
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc" + ".rx");
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc" + ".ry");
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc" + ".rz");
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc" + ".sx");
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc" + ".sy");
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc" + ".sz");
+    
+    setAttr ($groomerSelection[0] + "_DistanceLoc"+".visibility") 0;
+    setAttr -lock true -keyable false -channelBox false ($groomerSelection[0] + "_DistanceLoc"+".v");
+
+    parent ($groomerSelection[0] + "_DistanceLoc") $groomerSelection[0];
+    select -r $groomerSelection[0];
+
+}
+///////////////////////////////////////DELETE FALLOFF CTRL////////////////////////////////////
+global proc ss_deleteFalloffCtrl()
+{
+int $elCounto = 0;
+string $ctrlDelete = `textField -q -text controlObjIndex`;
+string $ctrlSetMembers[] = `sets -q ($ctrlDelete  + "_featherFalloffSel")`;
+string $tempFeatherSel[];
+
+/// Error Checking////
+
+if ($ctrlDelete == ""){
+    error "you must add a falloff control to the text field";
+}
+
+
+if ($ctrlDelete == "Pick your control object"){
+    error "you must add a falloff control to the text field";
+}
+
+
+if( `objExists ($ctrlDelete + "_featherFalloffSel")` ) {
+     select -r ($ctrlDelete + "_featherFalloffSel");
+} else {
+    error ("you must pick a falloff control that is attached to feathers");
+}
+/// Error Checking////
+///////////////////////////
+
+for($i = 0;$i<size($ctrlSetMembers);$i++ )
+		{
+        select $ctrlSetMembers[$i];		
+		pickWalk -d up;
+				
+		$tempFeatherSel = `ls -sl`;
+		
+		disconnectAttr ("setRange_RotRange_" + $ctrlSetMembers[$i] + "_" + $ctrlDelete + ".outValueX") ($tempFeatherSel[0] + ".rotateX");
+        disconnectAttr ("setRange_RotRange_" + $ctrlSetMembers[$i]+ "_" + $ctrlDelete + ".outValueY") ($tempFeatherSel[0] + ".rotateY");
+        disconnectAttr ("setRange_RotRange_" + $ctrlSetMembers[$i] + "_" + $ctrlDelete + ".outValueZ") ($tempFeatherSel[0] + ".rotateZ");
+
+        disconnectAttr ("endPlusMinAv_" + $ctrlDelete + "_" + $ctrlSetMembers[$i] +".output3Dx") ($ctrlSetMembers[$i]+".scaleX");
+        disconnectAttr ("endPlusMinAv_" + $ctrlDelete + "_" + $ctrlSetMembers[$i] +".output3Dy") ($ctrlSetMembers[$i]+".scaleY");
+        disconnectAttr ("endPlusMinAv_" + $ctrlDelete + "_" + $ctrlSetMembers[$i] +".output3Dz") ($ctrlSetMembers[$i]+".scaleZ");
+		
+		
+
+	    }
+select -r ($ctrlDelete + "_UtilityContainer");
+delete;
+select -r $ctrlDelete;
+delete;
+select -r -ne ($ctrlDelete + "_featherFalloffSel");
+delete;
+textField -e -tx "" controlObjIndex ;
+}
+///////////////RESET FALLOFF ROTATE//////////////////
+global proc ss_resetFalloffRotate ()
+{
+int $elCounto = 0;
+string $featherForCtrl[] = `ls -sl`;
+
+for( $item in $featherForCtrl )
+    {
+     select -r $featherForCtrl[$elCounto];
+    
+     if (`objExists ($featherForCtrl[$elCounto] + "_DistanceLoc")`){ 
+         } else { error " you must select feather objects only";
+     }
+     
+     pickWalk -d up;
+     
+     rotate -a 0 0 0; 
+     
+     $elCounto++;
+    }
+    select -cl;
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////// Feather Brush //////////
+global proc ss_attachFeatherBrush ()
+{
+
+cycleCheck -e off;
+
+string $myCombSel = `textField -q -text myComb`;  ///// stores the object the user wants to duplicate
+string $mySel[] = `ls -sl`;
+string $tempGrpSel[];
+
+float $featherLength = `floatSliderGrp -q -value featherCombLengthSlider`;
+
+//// error checking///
+
+if ($myCombSel == ""){
+    error "you must add a comb to the text field";
+    }
+    
+if ($myCombSel == "add you Comb"){
+    error "you must add a comb to the text field";
+    }
+    
+if (size($mySel) == 0){
+    error " you need you select one or more feather objects";
+    }
+    
+    
+if (stringArrayContains ($myCombSel, $mySel) == 1){
+    error " you must only select the feathers, please deslect the comb";
+    }    
+ 
+for ($i = 0; $i<size($mySel);$i++){ 
+    
+    if (`objExists ($mySel[$i] + "_DistanceLoc")` == 0){
+        error "you must select feather objects only";
+    }
+    
+}
+
+
+for( $i = 0; $i < size($mySel); $i++ )
+    {
+    
+    select -r $mySel[$i];
+    pickWalk -d up;
+    $tempGrpSel = `ls -sl`;
+    
+    ///////  locator for aim constraining the feather object
+    spaceLocator -n ($mySel[$i] + "_aimLoc");
+    parent ($mySel[$i] + "_aimLoc") $mySel[$i];
+    select -r ($mySel[$i] + "_aimLoc");
+    xform -a -t 0 0 0;
+    xform -a -t 0 $featherLength 0;
+    parent -w;
+    makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+
+    //// locators for the "catch and release" constraint 
+    spaceLocator -n ($myCombSel + "_" + $mySel[$i] + "_offsetLoc");
+    parent ($myCombSel + "_" + $mySel[$i] + "_offsetLoc") $myCombSel;
+    select -r ($myCombSel + "_" + $mySel[$i] + "_offsetLoc");
+    xform -a -t 0 0 0;
+
+    makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+
+    spaceLocator -n ($myCombSel + "_" + $mySel[$i] + "_offsetLocationLoc");
+    parent ($myCombSel + "_" + $mySel[$i] + "_offsetLocationLoc") $myCombSel;
+    select -r ($myCombSel + "_" + $mySel[$i] + "_offsetLocationLoc");
+    xform -a -t 0 0 0;
+    makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+    
+    ///////------- change the -7 7 values if you have large feathers ------------------------------------------------------ IMPORTANT <---------     
+    transformLimits -tz -7 7 -etz 1 1 ($mySel[$i] + "_aimLoc");
+    transformLimits -ty -7 7 -ety 1 1 ($mySel[$i] + "_aimLoc");
+    transformLimits -tx -7 7 -etx 1 1 ($mySel[$i] + "_aimLoc");
+    
+    /// create main aim constraint ///
+    aimConstraint -mo -n ($mySel[$i] + "_featherAimLocConstraint") -weight 1 -aimVector 0 1 0 -upVector 1 0 0 -worldUpType "none" ($mySel[$i] +"_aimLoc") $mySel[$i];
+   
+    /// connect ctrl and feather distance locator to distance node///   
+    shadingNode -asUtility distanceBetween -n ($mySel[$i] + "_distanceNode");
+    connectAttr -f ($mySel[$i] + "_DistanceLoc.worldPosition[0]") ($mySel[$i] + "_distanceNode.point1");
+    connectAttr -f ($myCombSel + "_distanceLoc.worldPosition[0]") ($mySel[$i] + "_distanceNode.point2");
+    
+    pointConstraint -mo -n ($mySel[$i] + "_mainConstraint") ($myCombSel + "_distanceLoc")  ($mySel[$i] + "_aimLoc");
+
+    /// create First condition node for the weight of the main child/parent constraint, connect and set attributes///
+    shadingNode -asUtility condition -n ($mySel[$i] + "_condition");
+    connectAttr -f ($mySel[$i] + "_distanceNode.distance") ($mySel[$i] + "_condition.firstTerm");
+    connectAttr -f ($myCombSel + ".Falloff_Size") ($mySel[$i] + "_condition.secondTerm");
+    setAttr ($mySel[$i] + "_condition.operation") 3;
+    setAttr ($mySel[$i] + "_condition.colorIfTrueR") 0;
+    setAttr ($mySel[$i] + "_condition.colorIfFalseR") 1;
+    
+    connectAttr -f ($mySel[$i] + "_condition.outColorR") ($mySel[$i] + "_mainConstraint."+ $myCombSel + "_distanceLocW0");
+
+    shadingNode -asUtility condition -n ($mySel[$i] + "_offsetCondition");
+    connectAttr -f ($mySel[$i] + "_condition.outColorR")  ($mySel[$i] + "_offsetCondition.firstTerm");
+    setAttr ($mySel[$i] + "_offsetCondition.operation") 4;
+    setAttr ($mySel[$i] + "_offsetCondition.secondTerm") 1;
+    setAttr ($mySel[$i] + "_offsetCondition.colorIfTrueR") 1;
+    setAttr ($mySel[$i] + "_offsetCondition.colorIfFalseR") 0;
+
+    pointConstraint -n ($myCombSel + "_" + $mySel[$i] +"_offLocationLocConstraint") ($mySel[$i] + "_aimLoc") ($myCombSel + "_" + $mySel[$i] + "_offsetLocationLoc");
+    pointConstraint -n ($myCombSel + "_" + $mySel[$i] +"_offsetLocConstraint") ($myCombSel + "_" + $mySel[$i] + "_offsetLocationLoc") ($myCombSel + "_" + $mySel[$i] +  "_offsetLoc");  //
+    
+    connectAttr -f ($mySel[$i] + "_offsetCondition.outColorR") ($myCombSel + "_" + $mySel[$i] + "_offsetLocConstraint."+ $myCombSel + "_" + $mySel[$i] + "_offsetLocationLocW0");
+    connectAttr -f ($myCombSel + "_" + $mySel[$i] + "_offsetLoc.translate") ($mySel[$i] + "_mainConstraint.offset");
+    
+    /// connect constraint rest position ///
+    connectAttr -f ($mySel[$i] + "_aimLoc.translate") ($mySel[$i] + "_mainConstraint.restTranslate");
+    connectAttr -f ($myCombSel + "_" + $mySel[$i] +"_offsetLoc.translate") ($myCombSel + "_" + $mySel[$i] +"_offsetLocConstraint.restTranslate");
+    
+    /// hiding the locators...  setting the visibility to 0 for some reason makes the constraints act weird, dont know why!!  luckily there is more than one way to hide objects ;)
+    setAttr ($mySel[$i] + "_aimLoc.template") 1;
+    setAttr ($myCombSel + "_" + $mySel[$i] + "_offsetLoc.template") 1;
+    setAttr ($myCombSel + "_" + $mySel[$i] + "_offsetLocationLoc.template") 1;
+    
+    setAttr ($mySel[$i] + "_aimLoc.scaleX") 0;
+    setAttr ($mySel[$i] + "_aimLoc.scaleY") 0;
+    setAttr ($mySel[$i] + "_aimLoc.scaleZ") 0;
+    
+    setAttr ($myCombSel + "_" + $mySel[$i] + "_offsetLoc.scaleX") 0;
+    setAttr ($myCombSel + "_" + $mySel[$i] + "_offsetLoc.scaleY") 0;
+    setAttr ($myCombSel + "_" + $mySel[$i] + "_offsetLoc.scaleZ") 0;
+    
+    setAttr ($myCombSel + "_" + $mySel[$i] + "_offsetLocationLoc.scaleX") 0;
+    setAttr ($myCombSel + "_" + $mySel[$i] + "_offsetLocationLoc.scaleY") 0;
+    setAttr ($myCombSel + "_" + $mySel[$i] + "_offsetLocationLoc.scaleZ") 0;
+
+    ////// putting all the locators into groups, and adding the names of the feathers into selection sets
+    select -r ($mySel[$i] + "_distanceNode");
+    select -add ($mySel[$i] + "_condition");
+    select -add ($mySel[$i] + "_offsetCondition");    
+    
+    if (`objExists ($myCombSel +"_UtilityContainer")`){
+        container -edit -force   -includeShapes -includeTransform  -addNode `ls -sl` ($myCombSel+"_UtilityContainer") ;
+        } else{
+        container -name ($myCombSel+"_UtilityContainer") -includeShaders -includeShapes -includeTransform -force -addNode `ls -sl`;
+        }    
+    
+    
+    if (`objExists ($myCombSel + "_aimLoc_grp")`){
+        parent ($mySel[$i] + "_aimLoc") ($myCombSel + "_aimLoc_grp");
+        } else {
+        group -em -n ($myCombSel + "_aimLoc_grp");
+        parent  ($mySel[$i] + "_aimLoc") ($myCombSel + "_aimLoc_grp");
+        }
+        
+    if (`objExists ($myCombSel + "_CombSel")`){
+        select -r $mySel[$i];
+       	sets -add ($myCombSel + "_CombSel");
+    } else {
+       	select -r $mySel[$i];
+    	sets -name ($myCombSel + "_CombSel");
+    }
+        
+        
+    select -cl;
+    }
+textField -e -tx "" myComb ;
+
+}
+
+            
+///////////////////////////////////////////////
+/////////////////create feather brush//////////////////////
+global proc ss_createFeatherBrush ()
+{
+
+string $newBrushSel[];
+
+curve -d 1 -p 0 3 0 -p 0 2 -2 -p 0 0 -3 -p 0 -2 -2 -p 0 -3 0 -p 0 -2 2 -p 0 0 3 
+          -p 0 2 2 -p 0 3 0 -p 2 2 0 -p 3 0 0 -p 2 -2 0 -p 0 -3 0 -p -2 -2 0 -p -3 0 0 
+          -p -2 2 0 -p 0 3 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 
+          -k 12 -k 13 -k 14 -k 15 -k 16 -n ("Comb00");
+
+$newBrushSel = `ls -sl`;
+addAttr -ln "Falloff_Size" -k 1 -at double -dv 6 ("|" + $newBrushSel[0]);
+
+spaceLocator -n ($newBrushSel[0] + "_distanceLoc");
+
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc" + ".tx");
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc" + ".ty");
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc" + ".tz");
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc" + ".rx");
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc" + ".ry");
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc" + ".rz");
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc" + ".sx");
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc" + ".sy");
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc" + ".sz");
+    
+setAttr ($newBrushSel[0] + "_distanceLoc"+".visibility") 0;
+setAttr -lock true -keyable false -channelBox false ($newBrushSel[0] + "_distanceLoc.v");
+parent ($newBrushSel[0] + "_distanceLoc") $newBrushSel[0];
+
+select -cl;
+
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////// remove feather brush////////////////////////////////////////////////////
+global proc  ss_deleteFeatherBrush ()
+{
+
+string $myComb = `textField -q -text myComb`;
+
+if (`objExists ($myComb + "_distanceLoc")` ==0){
+    error "you must pick a comb object that is attached to feather objects";
+    }
+    
+if ($myComb == "add your Comb"){
+    error "you must pick a comb object";
+    }
+
+string $combSetMembers[] = `sets -q ($myComb + "_CombSel")`;
+
+
+
+for ($i = 0; $i <size($combSetMembers);$i++){
+
+
+    delete ($combSetMembers[$i] + "_featherAimLocConstraint");
+
+    }
+
+delete $myComb;
+delete ($myComb + "_UtilityContainer");
+delete ($myComb + "_aimLoc_grp");
+delete ($myComb + "_CombSel");
+textField -e -tx "" myComb ;
+
+
+}
+/////////////////////////////////////////////////////////////////////////////////
+///////////////////////// reset feathers//////////////////////////////////
+global proc ss_resetFeatherComb()
+{
+
+string $meinSel[] = `ls -sl`;
+
+
+for ($i = 0; $i<size($meinSel);$i++){
+
+
+    select -r $meinSel[$i];
+    rotate -a 0 0 0;
+
+    }
+
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////Feather Sculpt groomer////////////////
+global proc ss_sculptGroom ()
+{
+
+float $posU;
+float $posV;
+float $featherWs[];
+float $aimOnSpherePos[];
+float $minU;
+float $MaxU;
+float $minV;
+float $MaxV;
+float $calcPosU;
+float $calcPosV;
+float $tempData;
+float $featherLength = `floatSliderGrp -q -value featherLengthSlider`;
+
+int $fStretchType  = `radioButtonGrp -q -select fStretching`;
+
+string $myFeatherSel[] = `ls -sl`;
+string $myNurbs = `textField -q -text AnimController`;
+string $myNurbsOrig[];
+string $myNurbsShape[];
+string $meinFollicle[];
+string $meinFollicleTrans[];
+string $tempGrpSel[];
+
+cycleCheck -e off;
+
+/////// error checking/////
+if ($myNurbs == "Pick your groom object"){
+    error "you must add a object to the sculpt groomer text field";
+    }   
+    
+select -r $myNurbs;
+pickWalk -d down;
+$myNurbsShape = `ls -sl`;
+
+if (`objectType $myNurbsShape` !=  "nurbsSurface"){
+    error "you must use a nurbs surface for sculpt grooming";
+    }
+
+if ($myNurbs == ""){
+    error "you must add a object to the sculpt groomer text field";
+    }
+
+ 
+    
+if (size($myFeatherSel) == 0){
+    error "you must pick one or more feather objects to be groomed";
+    }
+
+for ($i = 0; $i<size($myFeatherSel);$i++){ 
+    
+    if (`objExists ($myFeatherSel[$i] + "_DistanceLoc")` == 0){
+        error "you must select feather objects only";
+    }
+    
+}
+
+//// duplicating original object and hiding it for safe keeping
+select -r $myNurbs;
+duplicate -n ($myNurbs+ "_Orig_0#");
+
+$myNurbsOrig = `ls -sl`;
+setAttr ($myNurbsOrig[0] + ".visibility") 0;
+
+select -cl;
+
+
+//// creating and assigning the sculptGroomer shader
+if (`objExists sculptGroom_mat` == 0){
+
+    shadingNode -asShader -n sculptGroom_mat lambert;
+    setAttr "sculptGroom_mat.transparency" -type double3 0.9 0.9 0.9 ;
+    setAttr "sculptGroom_mat.color" -type double3 0 1 0 ;
+    select -r $myNurbs;
+    hyperShade -assign sculptGroom_mat;
+    } else {
+
+    select -r $myNurbs;
+    hyperShade -assign sculptGroom_mat;
+    }
+    
+    
+//// setup for calculating the uv positions
+select -r $myNurbs;
+pickWalk -d down;
+$myNurbsShape = `ls -sl`;
+
+$minU = `getAttr ($myNurbs + ".minValueU")`;
+$MaxU = `getAttr ($myNurbs + ".maxValueU")`;
+$minV = `getAttr ($myNurbs + ".minValueV")`;
+$MaxV = `getAttr ($myNurbs + ".maxValueV")`;
+
+createNode setRange -n ("setRange_" + $myNurbs + "_UVcalc");
+setAttr ("setRange_" + $myNurbs + "_UVcalc.minX") 0;
+setAttr ("setRange_" + $myNurbs + "_UVcalc.minY") 0;
+setAttr ("setRange_" + $myNurbs + "_UVcalc.maxX") 1;
+setAttr ("setRange_" + $myNurbs + "_UVcalc.maxY") 1;
+		
+setAttr ("setRange_" + $myNurbs + "_UVcalc.oldMinX") $minU;
+setAttr ("setRange_" + $myNurbs + "_UVcalc.oldMinY") $minV;
+setAttr ("setRange_" + $myNurbs + "_UVcalc.oldMaxX") $MaxU;
+setAttr ("setRange_" + $myNurbs + "_UVcalc.oldMaxY") $MaxV;
+		
+createNode closestPointOnSurface -n cpos;
+connectAttr -f ($myNurbsShape[0] + ".worldSpace[0]") cpos.inputSurface;
+
+for ($i = 0; $i <size($myFeatherSel);$i++){
+  
+        //////// freezing scale transforms on selected feathers
+        select -r $myFeatherSel[$i];
+        makeIdentity -apply true -t 0 -r 0 -s 1 -n 0;
+
+        ///////  locator for aim constraining the feather object
+        spaceLocator -n ($myFeatherSel[$i] + "_aimLoc");
+        parent ($myFeatherSel[$i] + "_aimLoc") $myFeatherSel[$i];
+        select -r ($myFeatherSel[$i] + "_aimLoc");
+        xform -a -t 0 0 0;
+        xform -a -t 0 $featherLength 0;
+        parent -w;
+        makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+        setAttr ($myFeatherSel[$i] + "_aimLoc.visibility") 0;
+    
+        aimConstraint -mo -weight 1 -aimVector 0 1 0 -upVector 1 0 0 -worldUpType "none"  ($myFeatherSel[$i] + "_aimLoc")  $myFeatherSel[$i];
+        rename ($myFeatherSel[$i] + "_aimConstraint1") ($myFeatherSel[$i] + "_aimCon");
+        
+        
+        ///// adding stretchy feathers
+        
+        if ($fStretchType >= 2){
+        
+                shadingNode -asUtility -n ($myFeatherSel[$i] + "_distanceScale") distanceBetween;
+                connectAttr -f ($myFeatherSel[$i] + "_DistanceLoc.worldPosition[0]") ($myFeatherSel[$i] + "_distanceScale.point1");
+                connectAttr -f ($myFeatherSel[$i] + "_aimLoc.worldPosition[0]") ($myFeatherSel[$i] + "_distanceScale.point2");
+
+                shadingNode -asUtility -n ($myFeatherSel[$i] + "_ConditionScale") condition;
+                connectAttr -f ($myFeatherSel[$i] + "_distanceScale.distance") ($myFeatherSel[$i] + "_ConditionScale.secondTerm");
+    
+                $tempData = `getAttr ($myFeatherSel[$i] + "_distanceScale.distance")`;
+                setAttr ($myFeatherSel[$i] + "_ConditionScale.firstTerm") 0.1; 
+                setAttr ($myFeatherSel[$i] + "_ConditionScale.colorIfTrueR") $tempData; 
+                connectAttr -f ($myFeatherSel[$i] + "_distanceScale.distance") ($myFeatherSel[$i] + "_ConditionScale.colorIfFalseR"); 
+                setAttr ($myFeatherSel[$i] + "_ConditionScale.operation") 3;   
+
+                shadingNode -asUtility -n ($myFeatherSel[$i] + "_multDivScale") multiplyDivide;
+                setAttr ($myFeatherSel[$i] + "_multDivScale.input2X") $tempData; 
+                setAttr ($myFeatherSel[$i] + "_multDivScale.operation") 2;
+                connectAttr -f ($myFeatherSel[$i] + "_ConditionScale.outColorR") ($myFeatherSel[$i] + "_multDivScale.input1X");
+        
+                connectAttr -f ($myFeatherSel[$i] + "_multDivScale.outputX") ($myFeatherSel[$i] + ".scaleY");
+        
+        
+        }else {
+       
+        }
+        
+        if ($fStretchType == 3){
+        
+                connectAttr -f ($myFeatherSel[$i] + "_multDivScale.outputX") ($myFeatherSel[$i] + ".scaleX");
+                connectAttr -f ($myFeatherSel[$i] + "_multDivScale.outputX") ($myFeatherSel[$i] + ".scaleZ");
+        }
+        
+        select -r $myFeatherSel[$i];
+        pickWalk -d up;    
+        $tempGrpSel = `ls -sl`;
+       
+//// find the uv position on the nurbs surface from the position of the feather
+        $featherWs = `xform -q -ws -rp ($myFeatherSel[$i] + "_aimLoc")`;
+        
+        setAttr "cpos.inPositionX" $featherWs[0];
+        setAttr "cpos.inPositionY" $featherWs[1];
+        setAttr "cpos.inPositionZ" $featherWs[2];
+        
+        $posU = `getAttr cpos.parameterU`;
+        $posV = `getAttr cpos.parameterV`;
+        
+        setAttr ("setRange_" + $myNurbs + "_UVcalc.valueX")$posU;
+        setAttr ("setRange_" + $myNurbs + "_UVcalc.valueY")$posV;
+		
+        $calcPosU = `getAttr ("setRange_" + $myNurbs + "_UVcalc.outValueX")`;
+        $calcPosV = `getAttr ("setRange_" + $myNurbs + "_UVcalc.outValueY")`;
+
+//// adding the follicle node to the nurbs surface
+        createNode follicle; 
+        pickWalk -d up;
+        rename `ls -sl` ($myNurbs + "_" + $myFeatherSel[$i] + "_Follicle");
+        pickWalk -d down;
+        $meinFollicle = `ls -sl`;
+        
+        select -r $meinFollicle;
+	    pickWalk -d up;
+	    $meinFollicleTrans = `ls -sl`;
+	    
+        connectAttr -f ($myNurbs +".local") ($meinFollicle[0] +".inputSurface");
+        connectAttr -f ($myNurbs+".worldMatrix[0]") ($meinFollicle[0]+".inputWorldMatrix");
+        connectAttr -f ($meinFollicle[0]+".outTranslate") ($meinFollicleTrans[0]+".translate");
+        connectAttr -f ($meinFollicle[0]+".outRotate") ($meinFollicleTrans[0]+".rotate"); 
+
+        setAttr ($myNurbs + "_" + $myFeatherSel[$i] + "_Follicle.parameterU") $calcPosU;
+        setAttr ($myNurbs + "_" + $myFeatherSel[$i] + "_Follicle.parameterV") $calcPosV;
+        setAttr ($myNurbs + "_" + $myFeatherSel[$i] + "_Follicle.visibility") 0;
+        
+        pointConstraint -mo ($myNurbs + "_" + $myFeatherSel[$i] + "_Follicle") ($myFeatherSel[$i] + "_aimLoc");
+        
+        
+        //////  putting utility nodes, follicles, locators into containers and selection sets.
+        
+        if ($fStretchType >= 2){
+                select -r ($myFeatherSel[$i] + "_distanceScale");
+                select -add ($myFeatherSel[$i] + "_multDivScale");
+                select -add ($myFeatherSel[$i] + "_ConditionScale");
+        
+        
+                if (`objExists ($myNurbs +"_UtilityContainer")`){
+                        container -edit -force   -includeShapes -includeTransform  -addNode `ls -sl` ($myNurbs+"_UtilityContainer") ;
+                } else{
+                        container -name ($myNurbs+"_UtilityContainer") -includeShaders -includeShapes -includeTransform -force -addNode `ls -sl`;
+                }
+        }
+		
+		if (`objExists ($myNurbs + "_sculptGroomSel")`){
+                select -r $myFeatherSel[$i];
+       	        sets -add ($myNurbs + "_sculptGroomSel");
+       	} else {
+       	        select -r $myFeatherSel[$i];
+       	        sets -name ($myNurbs + "_sculptGroomSel");
+       	}
+       	
+       	if (`objExists ($myNurbs + "_follicleLoc_grp")`){
+                parent ($myFeatherSel[$i] + "_aimLoc") ($myNurbs + "_follicleLoc_grp");       	
+               	parent ($myNurbs + "_" + $myFeatherSel[$i] + "_Follicle")($myNurbs + "_follicleLoc_grp");
+       	} else {
+               	select -r ($myFeatherSel[$i] + "_aimLoc");
+       	        select -add ($myNurbs + "_" + $myFeatherSel[$i] + "_Follicle");
+       	        group -n ($myNurbs + "_follicleLoc_grp");
+       	}
+
+        }
+        
+delete ("setRange_" + $myNurbs + "_UVcalc");
+delete cpos;
+select -cl;
+textField -e -tx "" AnimController ;
+
+setAttr ($myNurbs + ".primaryVisibility") 0;
+setAttr ($myNurbs + ".castsShadows") 0;
+setAttr ($myNurbs + ".receiveShadows") 0;
+setAttr ($myNurbs + ".visibleInReflections") 0;
+setAttr ($myNurbs + ".visibleInRefractions") 0;
+
+print "finished without problems";
+}
+
+//////////////////////////////////////////////////
+///////////// delete sculpt groomer //////////////
+global proc ss_deleteSculptGroom()
+{
+
+string $shaderMembers[];
+string $mySculptGroomer = `textField -q -text AnimController`;
+string $groomerSetMembers[];
+//// little bit of error checking
+if (`objExists ($mySculptGroomer + "_sculptGroomSel")` == 0){
+    error "you must pick and sculpt object that is attached to feathers";
+    } else {
+    $groomerSetMembers = `sets -q ($mySculptGroomer + "_sculptGroomSel")`;
+    }
+////    
+float $scaleValueY;
+
+for ($i = 0; $i < size($groomerSetMembers); $i++)
+{
+
+    delete ($groomerSetMembers[$i] + "_aimCon"); 
+    
+    if (`objExists ($groomerSetMembers[$i] + "_multDivScale.outputX")`){   
+    
+            if (`isConnected ($groomerSetMembers[$i] + "_multDivScale.outputX") ($groomerSetMembers[$i] + ".scaleY")` == 1){
+            $scaleValue = `getAttr ($groomerSetMembers[$i] + ".scaleY")`;
+            disconnectAttr ($groomerSetMembers[$i] + "_multDivScale.outputX") ($groomerSetMembers[$i] + ".scaleY") ; 
+            setAttr ($groomerSetMembers[$i] + ".scaleY") $scaleValue;
+            }
+    
+            if (`isConnected ($groomerSetMembers[$i] + "_multDivScale.outputX") ($groomerSetMembers[$i] + ".scaleX")` == 1){
+            $scaleValue = `getAttr ($groomerSetMembers[$i] + ".scaleX")`;
+            disconnectAttr ($groomerSetMembers[$i] + "_multDivScale.outputX") ($groomerSetMembers[$i] + ".scaleX") ; 
+            setAttr ($groomerSetMembers[$i] + ".scaleX") $scaleValue;    
+            }
+    
+            if (`isConnected ($groomerSetMembers[$i] + "_multDivScale.outputX") ($groomerSetMembers[$i] + ".scaleZ")` == 1){
+            $scaleValue = `getAttr ($groomerSetMembers[$i] + ".scaleZ")`;
+            disconnectAttr ($groomerSetMembers[$i] + "_multDivScale.outputX") ($groomerSetMembers[$i] + ".scaleZ") ; 
+            setAttr ($groomerSetMembers[$i] + ".scaleZ") $scaleValue;    
+            }
+     
+     }
+    
+    
+    
+}
+    
+if (`objExists ($mySculptGroomer + "_UtilityContainer")`){
+        
+        delete ($mySculptGroomer + "_UtilityContainer");
+}
+
+delete ($mySculptGroomer + "_follicleLoc_grp");
+delete ($mySculptGroomer + "_sculptGroomSel");
+
+hyperShade -objects sculptGroom_mat;
+$shaderMembers = `ls -sl`;
+
+if (size($shaderMembers)  >1){
+    print "move on";
+    } else {
+    delete sculptGroom_mat;
+    delete sculptGroom_matSG;
+    }
+
+select -r $mySculptGroomer;
+hyperShade -assign lambert1;
+select -cl; 
+textField -e -tx "" AnimController ;
+   
+
+print "selected sculpt groomer has been successfully deleted";  
+}
+///////////////////////////////////////////////////////////////////
+/////////////////add dynamics //////////////////////
+
+////---- almost exactly the same
+global proc ss_featherDyn ()
+{
+float $posU;
+float $posV;
+float $featherWs[];
+float $aimOnSpherePos[];
+float $minU;
+float $MaxU;
+float $minV;
+float $MaxV;
+float $calcPosU;
+float $calcPosV;
+float $tempData;
+float $featherLength = `floatSliderGrp -q -value featherDynLengthSlider`;
+
+string $myFeatherSel[] = `ls -sl`;
+string $featherDynGrp[];
+string $controlMesh = `textField -q -text ctrlNurbsSurface`;
+string $skinMesh = `textField -q -text charMeshSurface`;
+string $myNurbsOrig[];
+string $myNurbsShape[];
+string $meinFollicle[];
+string $meinFollicleTrans[];
+string $tempGrpSel[];
+string $myDynNurbs[];
+
+/////////////// error checking
+select -r $controlMesh;
+pickWalk -d down;
+$myNurbsShape = `ls -sl`;
+
+if (`objectType $myNurbsShape[0]` !=  "nurbsSurface"){
+    error "the control mesh has to be a nurbs surface";
+    }
+if (size($myFeatherSel) == 0){
+    error "you must select feather objects for the dynamics to be attached to";
+    }
+if ($controlMesh == ""){
+    error "you must add a control mesh to the text field";
+    }
+if ($skinMesh == ""){
+    error "you must add you character mesh to the text field";
+    }
+if ($controlMesh == "Pick your control object"){
+    error "you must add a control mesh to the text field";
+    }
+if ($skinMesh == "Pick your main character mesh"){
+    error "you must add you character mesh to the text field";
+    }
+
+if ($skinMesh == $controlMesh){
+    error "your character object and control nurbs object cannot be the same object";
+    }
+    
+if (`objExists ($controlMesh + "_sculptGroomSel")` == 1){
+    error "you must choose a control mesh that is not a functioning sculpt groomer";
+    }
+
+for ($i=0; $i<size($myFeatherSel);$i++){    
+    
+    if (`objExists ($myFeatherSel[$i] + "_DistanceLoc")` == 0){
+        error "you must select feather objects only";
+        }
+}
+///-------- error checking
+
+/////////////////////////////////////////////////////
+////wrap deforms the control nurbs to the skinned mesh
+select -r $controlMesh $skinMesh;
+doWrapArgList "1" { "1","0","1", "2", "0", "1", "0", "0" };
+rename ($skinMesh + "Base") ($skinMesh + "_" + $controlMesh +"_WrapBase_NoTouch");
+
+setAttr ($skinMesh + ".castsShadows")1;
+setAttr ($skinMesh + ".receiveShadows")1;
+setAttr ($skinMesh + ".motionBlur")1;
+setAttr ($skinMesh + ".primaryVisibility")1;
+setAttr ($skinMesh + ".smoothShading")1;
+setAttr ($skinMesh + ".visibleInReflections")1;
+setAttr ($skinMesh + ".visibleInRefractions")1;
+
+//making the control mesh a soft body
+select -r $controlMesh;
+soft -g 0.8 ;
+setAttr ($controlMesh + ".visibility") 0;
+
+rename ("copyOf" + $controlMesh) ($controlMesh + "_soft");
+rename ("copyOf" + $controlMesh + "Particle") ($controlMesh + "_softParticle");
+
+select -r ($controlMesh + "_soft");
+$myDynNurbs =`ls -sl`;
+
+//// creating and assigning the sculptGroomer shader
+if (`objExists sculptDyn_mat` == 0){
+    
+    shadingNode -asShader -n sculptDyn_mat lambert;
+    setAttr "sculptDyn_mat.transparency" -type double3 0.9 0.9 0.9 ;
+    setAttr "sculptDyn_mat.color" -type double3 0 0 1 ;
+    select -r $myDynNurbs[0];
+    hyperShade -assign sculptDyn_mat;
+
+    } else {
+    
+    select -r $myDynNurbs[0];
+    hyperShade -assign sculptDyn_mat;
+    }
+    
+select -r ($controlMesh + "_softParticle");
+hyperShade -assign lambert1;
+
+
+//// setup for calculating the uv positions
+select -r $myDynNurbs[0];
+pickWalk -d down;
+$myNurbsShape = `ls -sl`;
+
+$minU = `getAttr ($myDynNurbs[0] + ".minValueU")`;
+$MaxU = `getAttr ($myDynNurbs[0] + ".maxValueU")`;
+$minV = `getAttr ($myDynNurbs[0] + ".minValueV")`;
+$MaxV = `getAttr ($myDynNurbs[0] + ".maxValueV")`;
+
+createNode setRange -n ("setRange_" + $myDynNurbs[0] + "_UVcalc");
+setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.minX") 0;
+setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.minY") 0;
+setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.maxX") 1;
+setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.maxY") 1;
+		
+setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.oldMinX") $minU;
+setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.oldMinY") $minV;
+setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.oldMaxX") $MaxU;
+setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.oldMaxY") $MaxV;
+		
+createNode closestPointOnSurface -n cpos;
+connectAttr -f ($myNurbsShape[0] + ".worldSpace[0]") cpos.inputSurface;
+
+for ($i = 0; $i <size($myFeatherSel);$i++){
+  
+        //////// freezing scale transforms on selected feathers
+        select -r $myFeatherSel[$i];
+        makeIdentity -apply true -t 0 -r 0 -s 1 -n 0;
+        pickWalk -d up;
+        pickWalk -d up;
+        $featherDynGrp = `ls -sl`;
+
+        ///////  locator for aim constraining the feather object
+        spaceLocator -n ($myFeatherSel[$i] + "_aimLoc");
+        parent ($myFeatherSel[$i] + "_aimLoc") $myFeatherSel[$i];
+        select -r ($myFeatherSel[$i] + "_aimLoc");
+        xform -a -t 0 0 0;
+        xform -a -t 0 $featherLength 0;
+        parent -w;
+        makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+        setAttr ($myFeatherSel[$i] + "_aimLoc.visibility") 0;
+    
+        aimConstraint -mo -weight 1 -aimVector 0 1 0 -upVector 1 0 0 -worldUpType "none"  ($myFeatherSel[$i] + "_aimLoc")  $featherDynGrp[0];
+        rename ($featherDynGrp[0] + "_aimConstraint1") ($myFeatherSel[$i] + "_aimCon");
+        
+        select -r $myFeatherSel[$i];
+        pickWalk -d up;    
+        $tempGrpSel = `ls -sl`;
+       
+//// find the uv position on the nurbs surface from the position of the feather
+        $featherWs = `xform -q -ws -rp ($myFeatherSel[$i] + "_aimLoc")`;
+        
+        setAttr "cpos.inPositionX" $featherWs[0];
+        setAttr "cpos.inPositionY" $featherWs[1];
+        setAttr "cpos.inPositionZ" $featherWs[2];
+        
+        $posU = `getAttr cpos.parameterU`;
+        $posV = `getAttr cpos.parameterV`;
+        
+        setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.valueX")$posU;
+        setAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.valueY")$posV;
+		
+        $calcPosU = `getAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.outValueX")`;
+        $calcPosV = `getAttr ("setRange_" + $myDynNurbs[0] + "_UVcalc.outValueY")`;
+
+//// adding the follicle node to the nurbs surface
+        createNode follicle; 
+        pickWalk -d up;
+        rename `ls -sl` ($myDynNurbs[0] + "_" + $myFeatherSel[$i] + "_Follicle");
+        pickWalk -d down;
+        $meinFollicle = `ls -sl`;
+        
+        select -r $meinFollicle;
+	    pickWalk -d up;
+	    $meinFollicleTrans = `ls -sl`;
+	    
+        connectAttr -f ($myDynNurbs[0] +".local") ($meinFollicle[0] +".inputSurface");
+        connectAttr -f ($myDynNurbs[0]+".worldMatrix[0]") ($meinFollicle[0]+".inputWorldMatrix");
+        connectAttr -f ($meinFollicle[0]+".outTranslate") ($meinFollicleTrans[0]+".translate");
+        connectAttr -f ($meinFollicle[0]+".outRotate") ($meinFollicleTrans[0]+".rotate"); 
+
+        setAttr ($myDynNurbs[0] + "_" + $myFeatherSel[$i] + "_Follicle.parameterU") $calcPosU;
+        setAttr ($myDynNurbs[0] + "_" + $myFeatherSel[$i] + "_Follicle.parameterV") $calcPosV;
+        setAttr ($myDynNurbs[0] + "_" + $myFeatherSel[$i] + "_Follicle.visibility") 0;
+        
+        pointConstraint -mo ($myDynNurbs[0] + "_" + $myFeatherSel[$i] + "_Follicle") ($myFeatherSel[$i] + "_aimLoc");
+        
+        
+        //////  putting follicles and locators into groups and selection sets.
+       
+     	
+		if (`objExists ($myDynNurbs[0] + "_featherDynamicSel")`){
+                select -r $myFeatherSel[$i];
+       	        sets -add ($myDynNurbs[0] + "_featherDynamicSel");
+       	} else {
+       	        select -r $myFeatherSel[$i];
+       	        sets -name ($myDynNurbs[0] + "_featherDynamicSel");
+       	}
+       	
+       	if (`objExists ($myDynNurbs[0] + "_follicleLoc_grp")`){
+                parent ($myFeatherSel[$i] + "_aimLoc") ($myDynNurbs[0] + "_follicleLoc_grp");       	
+               	parent ($myDynNurbs[0] + "_" + $myFeatherSel[$i] + "_Follicle")($myDynNurbs[0] + "_follicleLoc_grp");
+       	} else {
+               	select -r ($myFeatherSel[$i] + "_aimLoc");
+       	        select -add ($myDynNurbs[0] + "_" + $myFeatherSel[$i] + "_Follicle");
+       	        group -n ($myDynNurbs[0] + "_follicleLoc_grp");
+       	}
+
+      }
+        
+if (`objExists ($myDynNurbs[0] + "_dynamics_grp")`){
+     parent ($skinMesh + "_" + $controlMesh+ "_WrapBase_NoTouch") ($myDynNurbs[0] + "_dynamics_grp");
+     parent ($controlMesh + "_soft") ($myDynNurbs[0] + "_dynamics_grp");
+} else {
+     select -r ($skinMesh + "_" + $controlMesh + "_WrapBase_NoTouch") ($controlMesh + "_soft");
+     group -n ($myDynNurbs[0] + "_dynamics_grp");
+     }
+////---- little bit of cleanup
+delete ("setRange_" + $myDynNurbs[0] + "_UVcalc");
+delete cpos;
+select -cl;
+textField -e -tx "" ctrlNurbsSurface ;
+textField -e -tx "" charMeshSurface ;
+
+//// making it so the control mesh does not show up in a render
+setAttr ($controlMesh + "_soft.primaryVisibility") 0;
+setAttr ($controlMesh + "_soft.castsShadows") 0;
+setAttr ($controlMesh + "_soft.receiveShadows") 0;
+setAttr ($controlMesh + "_soft.visibleInReflections") 0;
+setAttr ($controlMesh + "_soft.visibleInRefractions") 0;
+///// making sure the skin mesh shows up in the render
+setAttr ($skinMesh + ".primaryVisibility") 1;
+setAttr ($skinMesh + ".castsShadows") 1;
+setAttr ($skinMesh + ".receiveShadows") 1;
+setAttr ($skinMesh + ".visibleInReflections") 1;
+setAttr ($skinMesh + ".visibleInRefractions") 1;
+
+
+print "finished without problems";
+
+
+
+
+}
+////////////////////////////////////////////////////////////////////////////
+//////////////////////// remove dynamics/////////////////////////////////
+global proc ss_removeFeatherDynamics ()
+{
+string $shaderMembers[];
+string $myControlMesh = `textField -q -text ctrlNurbsSurface`;
+
+///-------- error checking
+if ($myControlMesh == ""){
+    error "you must add a dynamic control object to the text field";
+    }
+
+if ($myControlMesh == "Pick your control object"){
+    error "you must add a dynamic control object to the text field";
+    }
+   
+if (`objExists ($myControlMesh + "_featherDynamicSel")`){
+        
+        delete ($myControlMesh + "_featherDynamicSel");
+    } else {
+    error "you must pick a dynamic control object that is connected to feathers";
+    }
+///-------- error checking
+
+parent -w;
+delete ($myControlMesh + "Particle");
+delete ($myControlMesh + "_follicleLoc_grp");
+delete ($myControlMesh + "_dynamics_grp");
+
+hyperShade -objects sculptDyn_mat;
+$shaderMembers = `ls -sl`;
+
+if (size($shaderMembers) ==1){
+    
+    delete sculptDyn_mat;
+    delete sculptDyn_matSG;
+    }    
+
+    select -r $myControlMesh;
+    hyperShade -assign lambert1;
+    select -cl;
+    textField -e -tx "" ctrlNurbsSurface ;
+    textField -e -tx "" charMeshSurface ;
+    print "selected sculpt groomer has been successfully deleted";  
+}
+//////////////////////////////////////////////////////////////////////////////
+//////////////////// cache dynamics ////////////////////////////
+global proc ss_cacheFeatherDynamics ()
+{
+
+string $controlMesh = `textField -q -text ctrlNurbsSurface`;
+
+if (`objExists ($controlMesh + "_featherDynamicSel")`){
+        
+    } else {
+    error "you must pick a dynamic control object that is connected to feathers";
+    }
+
+select -r $controlMesh;
+geometryCacheOpt;
+
+
+}
+///////////////////////////////////////////////////////////////////////
+/////////////////////// delete Cache////////////////////////////
+global proc ss_deleteFeatherCache ()
+{
+
+string $controlMesh = `textField -q -text ctrlNurbsSurface`;
+
+if (`objExists ($controlMesh + "_featherDynamicSel")` == 1){
+        
+    } else {
+    error "you must pick a dynamic control object that is connected to feathers";
+    }
+    
+if (`objExists ($controlMesh + "ShapeCache1")` == 1){
+  
+    select -r ($controlMesh + "ShapeCache1");
+    geometryDeleteCacheOpt;
+} else {
+    error "you must select a dynamic control object that has a cache attached to it";
+    }    
+    
+}
+/////////////////////////////////////////////////////////////////////////
+//////////////////////// reconnect dynamics//////////////////////////////
+
+//--------------- this procedure reconnects particles to its soft body geo if hostory is deleted on the softbody.
+global proc ss_reconnectFeatherDynamics ()     
+{
+
+string $controlMesh = `textField -q -text ctrlNurbsSurface`;
+
+if (`objExists ($controlMesh + "_featherDynamicSel")` == 1){
+        
+    } else {
+    error "you must pick a dynamic control object that is connected to feathers";
+    }
+
+    
+if (`isConnected ($controlMesh + "ParticleShape.targetGeometry") ($controlMesh + "Shape.create")` == 0){
+    connectAttr ($controlMesh + "ParticleShape.targetGeometry") ($controlMesh + "Shape.create");
+    } else {
+    error "The selected dynamic control object is already connected";
+    }
+
+textField -e -tx "" ctrlNurbsSurface ;
+}
